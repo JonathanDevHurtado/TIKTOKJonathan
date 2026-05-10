@@ -287,8 +287,8 @@ export default function VideoCard({ video, isActive }) {
 
       {/* Modal de Comentarios superpuesto */}
       {showComments && (
-        <div className="absolute inset-0 bg-black/60 z-50 flex flex-col justify-end" onClick={e => e.stopPropagation()}>
-          <div className="bg-[#121212] w-full h-[70%] rounded-t-2xl flex flex-col animate-slide-up">
+        <div className="absolute inset-0 bg-black/60 z-50 flex flex-col justify-end md:flex-row md:justify-end" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#121212] w-full h-[70%] md:h-full md:w-80 rounded-t-2xl md:rounded-none md:border-l md:border-tiktok-dark-hover flex flex-col animate-slide-up">
             
             <div className="flex justify-between items-center p-4 border-b border-tiktok-dark-hover">
               <span className="font-bold text-white">{commentsCount} comentarios</span>

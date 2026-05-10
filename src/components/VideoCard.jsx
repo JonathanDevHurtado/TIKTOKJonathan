@@ -167,6 +167,35 @@ export default function VideoCard({ video, isActive }) {
     }
   };
 
+  const handleFollow = async (e) => {
+    e?.stopPropagation();
+    if (!session) return alert("Debes iniciar sesión para seguir a este usuario");
+    if (session.user.id === video.user_id) return alert("No puedes seguirte a ti mismo");
+
+    const newFollowState = !isFollowing;
+    setIsFollowing(newFollowState);
+
+    if (newFollowState) {
+      const { error } = await supabase.from('followers').insert({ 
+        follower_id: session.user.id, 
+        following_id: video.user_id 
+      });
+      if (error && error.code !== '23505') {
+        console.error("Error following:", error);
+        setIsFollowing(false);
+      }
+    } else {
+      const { error } = await supabase.from('followers').delete().match({ 
+        follower_id: session.user.id, 
+        following_id: video.user_id 
+      });
+      if (error) {
+        console.error("Error unfollowing:", error);
+        setIsFollowing(true);
+      }
+    }
+  };
+
   const postComment = async (e) => {
     e.preventDefault();
     if (!session || !newComment.trim()) return;
@@ -315,12 +344,17 @@ export default function VideoCard({ video, isActive }) {
 
         <div className="absolute right-2 bottom-20 flex flex-col items-center gap-6 z-10 pointer-events-auto" onClick={e => e.stopPropagation()}>
           <div className="relative mb-2">
-            <Link href={`/profile/${username}`}>
-              <img src={avatarUrl} className="w-12 h-12 rounded-full border-2 border-white object-cover shadow-xl" alt="avatar" />
+            <Link href={`/profile/${username}`} onClick={e => e.stopPropagation()}>
+              <img src={avatarUrl} className="w-12 h-12 rounded-full border-2 border-white object-cover shadow-xl hover:scale-110 transition-transform" alt="avatar" />
             </Link>
-            <button className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-tiktok-red text-white rounded-full p-0.5 shadow-lg">
-              <Plus className="w-4 h-4" />
-            </button>
+            {!isFollowing && session?.user?.id !== video.user_id && (
+              <button 
+                onClick={handleFollow}
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-tiktok-red text-white rounded-full p-0.5 shadow-lg hover:scale-125 active:scale-95 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <ActionBtn icon={Heart} label={formatNum(likesCount)} active={liked} onClick={handleLike} pulse={likeAnim} filled={liked} />
           <ActionBtn icon={MessageCircle} label={formatNum(commentsCount)} onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }} />
@@ -329,11 +363,11 @@ export default function VideoCard({ video, isActive }) {
         </div>
 
         <div className="absolute left-4 bottom-8 right-16 z-10 pointer-events-none">
-          <Link href={`/profile/${username}`} className="inline-block pointer-events-auto">
-            <h3 className="font-bold text-lg text-white drop-shadow-lg mb-2">@{username}</h3>
+          <Link href={`/profile/${username}`} onClick={e => e.stopPropagation()} className="inline-block pointer-events-auto">
+            <h3 className="font-bold text-lg text-white drop-shadow-lg mb-2 hover:underline transition-all">@{username}</h3>
           </Link>
           <p className="text-white text-sm mb-3 drop-shadow-lg line-clamp-2 max-w-xs">{description}</p>
-          <div className="flex items-center gap-2 group pointer-events-auto cursor-pointer w-fit">
+          <div className="flex items-center gap-2 group pointer-events-auto cursor-pointer w-fit" onClick={e => e.stopPropagation()}>
             <Music className="w-4 h-4 text-white animate-spin-slow" />
             <span className="text-white text-sm truncate max-w-[150px] drop-shadow-lg">{song}</span>
           </div>

@@ -20,6 +20,7 @@ export default function Profile() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     let targetUsername = username;
@@ -59,9 +60,14 @@ export default function Profile() {
 
       setStats({ followers: followersCount || 0, following: followingCount || 0, likes: totalLikes });
 
-      if (session?.user?.id === data.id) {
-        const { data: savedData } = await supabase.from('saves').select('*, videos(*, profiles(username, avatar_url))').eq('user_id', session.user.id);
-        if (savedData) setFavorites(savedData.map(s => s.videos));
+      if (session?.user?.id) {
+        if (session.user.id === data.id) {
+          const { data: savedData } = await supabase.from('saves').select('*, videos(*, profiles(username, avatar_url))').eq('user_id', session.user.id);
+          if (savedData) setFavorites(savedData.map(s => s.videos));
+        } else {
+          const { data: followData } = await supabase.from('followers').select('*').eq('follower_id', session.user.id).eq('following_id', data.id).single();
+          setIsFollowing(!!followData);
+        }
       }
     }
     setLoading(false);
@@ -88,7 +94,28 @@ export default function Profile() {
       alert("Error al borrar cuenta: " + error.message);
     }
   };
+  const handleFollow = async () => {
+    if (!session) return router.push('/login');
+    if (!profile) return;
+    
+    const newFollowState = !isFollowing;
+    setIsFollowing(newFollowState);
+    setStats(prev => ({ ...prev, followers: newFollowState ? prev.followers + 1 : prev.followers - 1 }));
 
+    if (newFollowState) {
+      const { error } = await supabase.from('followers').insert({ follower_id: session.user.id, following_id: profile.id });
+      if (error && error.code !== '23505') {
+        setIsFollowing(false);
+        setStats(prev => ({ ...prev, followers: prev.followers - 1 }));
+      }
+    } else {
+      const { error } = await supabase.from('followers').delete().match({ follower_id: session.user.id, following_id: profile.id });
+      if (error) {
+        setIsFollowing(true);
+        setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
+      }
+    }
+  };
   if (loading) return <div className="flex-1 flex justify-center items-center h-full"><div className="animate-spin w-8 h-8 border-4 border-tiktok-red border-t-transparent rounded-full"></div></div>;
 
   if (!profile) return <div className="flex-1 flex justify-center items-center">Perfil no encontrado</div>;
@@ -158,7 +185,12 @@ export default function Profile() {
             <Edit2 className="w-4 h-4" /> Editar perfil
           </button>
         ) : (
-          <button className="bg-tiktok-red hover:bg-[#e0254b] text-white font-bold py-2.5 px-16 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 hover:shadow-tiktok-red/20">Seguir</button>
+          <button 
+            onClick={handleFollow}
+            className={`font-bold py-2.5 px-16 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 hover:shadow-tiktok-red/20 ${isFollowing ? 'bg-tiktok-dark-hover text-white' : 'bg-tiktok-red text-white hover:bg-[#e0254b]'}`}
+          >
+            {isFollowing ? 'Siguiendo' : 'Seguir'}
+          </button>
         )}
 
         <p className="mt-6 text-sm text-center max-w-sm opacity-80">{profile.bio || 'Sin biografía todavía.'}</p>

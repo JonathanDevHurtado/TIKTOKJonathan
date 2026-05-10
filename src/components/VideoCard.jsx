@@ -154,11 +154,6 @@ export default function VideoCard({ video, isActive }) {
     }
   };
 
-    } else {
-      await supabase.from('likes').delete().match({ video_id: video.id, user_id: session.user.id });
-    }
-  };
-
   const handleLike = async (e) => {
     e.stopPropagation();
     if (!session) return showToast("Inicia sesión para dar Like");

@@ -37,7 +37,7 @@ export default function VideoCard({ video, isActive }) {
   const [showHeart, setShowHeart] = useState(false);
   const [heartPos, setHeartPos] = useState({ x: 0, y: 0 });
   const [progress, setProgress] = useState(0);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isFollowing, setIsFollowing] = useState(false);
   const [likesCount, setLikesCount] = useState(video.likes || 0);
@@ -86,7 +86,13 @@ export default function VideoCard({ video, isActive }) {
     const v = videoRef.current;
     if (!v) return;
     if (isActive) {
-      v.play().catch(() => {});
+      v.play().catch((err) => {
+        if (err.name === 'NotAllowedError') {
+          v.muted = true;
+          setMuted(true);
+          v.play().catch(() => {});
+        }
+      });
       setPlaying(true);
       if (!viewTracked.current && video.id) {
         const timer = setTimeout(async () => {

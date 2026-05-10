@@ -63,6 +63,8 @@ export default function VideoCard({ video, isActive }) {
   // Estados de DB
   const [likesCount, setLikesCount] = useState(video.likes || 0);
   const [commentsCount, setCommentsCount] = useState(video.comments || 0);
+  const [savesCount, setSavesCount] = useState(video.saves || 0);
+  const [sharesCount, setSharesCount] = useState(video.shares || 0);
   
   // Modal de comentarios
   const [showComments, setShowComments] = useState(false);
@@ -74,8 +76,6 @@ export default function VideoCard({ video, isActive }) {
   const avatarUrl = video.profiles?.avatar_url || video.user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback';
   const description = video.description || video.desc || '';
   const song = video.song || 'Sonido original';
-  const sharesCount = video.shares || 0;
-  const savesCount = video.saves || 0;
 
   useEffect(() => {
     // Cargar likes reales
@@ -91,6 +91,9 @@ export default function VideoCard({ video, isActive }) {
       if (session?.user) {
         const { data } = await supabase.from('likes').select('id').eq('video_id', video.id).eq('user_id', session.user.id).single();
         if (data) setLiked(true);
+
+        const { data: saveData } = await supabase.from('saves').select('id').eq('video_id', video.id).eq('user_id', session.user.id).single();
+        if (saveData) setSaved(true);
 
         if (video.user_id) {
           const { data: followData } = await supabase.from('followers').select('follower_id').eq('follower_id', session.user.id).eq('following_id', video.user_id).single();
@@ -125,7 +128,7 @@ export default function VideoCard({ video, isActive }) {
         setLikesCount(prev => prev + 1);
         supabase.from('likes').insert({ video_id: video.id, user_id: session.user.id })
           .then(({ error }) => {
-            if (error) alert("Error al guardar el like: " + error.message);
+            if (error && error.code !== '23505') alert("Error al guardar el like: " + error.message);
           });
       }
     }
@@ -144,7 +147,7 @@ export default function VideoCard({ video, isActive }) {
 
     if (newLikedState) {
       const { error } = await supabase.from('likes').insert({ video_id: video.id, user_id: session.user.id });
-      if (error) alert("Error al guardar el like: " + error.message);
+      if (error && error.code !== '23505') alert("Error al guardar el like: " + error.message);
     } else {
       const { error } = await supabase.from('likes').delete().match({ video_id: video.id, user_id: session.user.id });
       if (error) alert("Error al quitar el like: " + error.message);
@@ -196,6 +199,31 @@ export default function VideoCard({ video, isActive }) {
       setNewComment('');
       setCommentsCount(prev => prev + 1);
     }
+  };
+
+  const handleSave = async (e) => {
+    e.stopPropagation();
+    if (!session) return alert("Debes iniciar sesión para guardar videos");
+
+    const newSavedState = !saved;
+    setSaved(newSavedState);
+    setSavesCount(prev => newSavedState ? prev + 1 : prev - 1);
+
+    if (newSavedState) {
+      const { error } = await supabase.from('saves').insert({ video_id: video.id, user_id: session.user.id });
+      if (error && error.code !== '23505') console.error("Error saving:", error);
+    } else {
+      await supabase.from('saves').delete().match({ video_id: video.id, user_id: session.user.id });
+    }
+  };
+
+  const handleShare = async (e) => {
+    e.stopPropagation();
+    const link = `${window.location.origin}/video/${video.id}`;
+    navigator.clipboard.writeText(link);
+    alert("¡Enlace copiado al portapapeles!");
+    setSharesCount(prev => prev + 1);
+    await supabase.rpc('increment_share', { vid_id: video.id });
   };
 
   return (
@@ -314,8 +342,8 @@ export default function VideoCard({ video, isActive }) {
           pulse={likeAnim}
         />
         <ActionBtn icon={MessageCircle} filled={true} label={formatNum(commentsCount)} onClick={openComments} />
-        <ActionBtn icon={Bookmark} filled={saved} active={saved} label={formatNum(savesCount)} onClick={e => { e.stopPropagation(); setSaved(s => !s); }} />
-        <ActionBtn icon={Share2} filled={true} label={formatNum(sharesCount)} />
+        <ActionBtn icon={Bookmark} filled={saved} active={saved} label={formatNum(savesCount)} onClick={handleSave} />
+        <ActionBtn icon={Share2} filled={true} label={formatNum(sharesCount)} onClick={handleShare} />
       </div>
 
       {/* Modal de Comentarios superpuesto */}

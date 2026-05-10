@@ -61,7 +61,7 @@ export function Sidebar({ compact, session }) {
         </div>
       </div>
 
-      {!compact && <p className="text-xs text-tiktok-gray text-center hidden lg:block">© 2026 TikTok Clone</p>}
+      {!compact && <p className="text-xs text-tiktok-gray text-center hidden lg:block">© 2026 TikTok</p>}
     </aside>
   );
 }

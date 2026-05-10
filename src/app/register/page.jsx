@@ -40,7 +40,7 @@ export default function Register() {
       <div className="w-full max-w-md bg-[#121212] p-8 rounded-2xl border border-tiktok-dark-hover shadow-2xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Registrarse</h1>
-          <p className="text-tiktok-gray">Únete a TikTok Clone</p>
+          <p className="text-tiktok-gray">Únete a TikTok</p>
         </div>
 
         {error && <div className="bg-red-500/10 border border-red-500 text-red-500 p-3 rounded-xl mb-4 text-sm">{error}</div>}
@@ -54,7 +54,7 @@ export default function Register() {
               onChange={(e) => setUsername(e.target.value)}
               required
               className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-xl px-4 py-3 text-white focus:outline-none focus:border-tiktok-red transition-colors"
-              placeholder="tu_usuario"
+              placeholder="Usuario"
             />
           </div>
 

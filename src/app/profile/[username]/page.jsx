@@ -128,14 +128,14 @@ export default function Profile() {
       </div>
 
       <div className="flex flex-col items-center p-4 md:p-8">
-        <div className="relative mb-4">
+        <div className="relative mb-4 group cursor-pointer">
           <img 
             src={profile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile?.username || 'user')} 
             alt={profile?.username || 'avatar'} 
-            className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-tiktok-dark-hover object-cover shadow-xl"
+            className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-tiktok-dark-hover object-cover shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:rotate-3"
           />
           {isOwner && (
-            <button onClick={() => setIsEditModalOpen(true)} className="absolute bottom-0 right-0 bg-white text-black p-1.5 rounded-full shadow-lg hover:scale-110 transition-transform">
+            <button onClick={() => setIsEditModalOpen(true)} className="absolute bottom-0 right-0 bg-white text-black p-2 rounded-full shadow-lg hover:scale-110 active:scale-90 transition-all border border-gray-100">
               <Edit2 className="w-4 h-4" />
             </button>
           )}
@@ -165,15 +165,24 @@ export default function Profile() {
       </div>
 
       {/* Tabs */}
-      <div className="flex w-full border-b border-tiktok-dark-hover/10">
-        <button onClick={() => setActiveTab('videos')} className={`flex-1 py-3 font-semibold relative ${activeTab === 'videos' ? 'opacity-100' : 'opacity-40'}`}>
-          Videos
-          {activeTab === 'videos' && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-current rounded-full" />}
+      <div className="flex w-full border-b border-tiktok-dark-hover/10 sticky top-0 bg-[var(--bg-primary)] z-20">
+        <button 
+          onClick={() => setActiveTab('videos')} 
+          className={`flex-1 py-4 font-bold transition-all duration-300 relative group ${activeTab === 'videos' ? 'text-tiktok-red' : 'opacity-40 hover:opacity-100'}`}
+        >
+          <span className="group-hover:scale-110 inline-block transition-transform">Videos</span>
+          {activeTab === 'videos' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-tiktok-red animate-in fade-in slide-in-from-left duration-300" />}
         </button>
         {isOwner && (
-          <button onClick={() => setActiveTab('favorites')} className={`flex-1 py-3 font-semibold relative flex items-center justify-center gap-2 ${activeTab === 'favorites' ? 'opacity-100' : 'opacity-40'}`}>
-            <Bookmark className="w-4 h-4" /> Favoritos
-            {activeTab === 'favorites' && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-current rounded-full" />}
+          <button 
+            onClick={() => setActiveTab('favorites')} 
+            className={`flex-1 py-4 font-bold transition-all duration-300 relative flex items-center justify-center gap-2 group ${activeTab === 'favorites' ? 'text-tiktok-red' : 'opacity-40 hover:opacity-100'}`}
+          >
+            <div className="flex items-center gap-2 group-hover:scale-110 transition-transform">
+              <Bookmark className="w-4 h-4" /> 
+              <span>Favoritos</span>
+            </div>
+            {activeTab === 'favorites' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-tiktok-red animate-in fade-in slide-in-from-right duration-300" />}
           </button>
         )}
       </div>
@@ -184,19 +193,17 @@ export default function Profile() {
           ((activeTab === 'videos' ? profile?.videos : favorites) || []).filter(v => v && v.id).map(video => (
             <div 
               key={video.id} 
-              className="aspect-[3/4] bg-tiktok-dark-hover/5 relative cursor-pointer group overflow-hidden" 
+              className="aspect-[3/4] bg-tiktok-dark-hover/5 relative cursor-pointer group overflow-hidden rounded-sm hover:z-10 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl" 
               onClick={() => router.push(`/video/${video.id}`)}
             >
-               <video src={video.video_url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" muted />
-               <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-               <div className="absolute bottom-2 left-2 flex items-center gap-1.5 text-white text-xs font-bold drop-shadow-md z-10">
-                 <Play className="w-3 h-3 fill-current" />
-                 {video.views || 0}
+               <video src={video.video_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" muted />
+               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                  <Play className="w-8 h-8 text-white scale-0 group-hover:scale-100 transition-transform duration-300 drop-shadow-2xl" />
                </div>
                {isOwner && activeTab === 'videos' && (
                  <button 
                    onClick={(e) => handleDeleteVideo(video.id, e)} 
-                   className="absolute top-2 right-2 p-1.5 bg-black/40 hover:bg-red-500 rounded-full text-white transition-all transform scale-0 group-hover:scale-100 z-20"
+                   className="absolute top-2 right-2 p-1.5 bg-black/40 hover:bg-red-500 rounded-full text-white transition-all transform scale-0 group-hover:scale-100 z-20 hover:rotate-90"
                  >
                    <X className="w-4 h-4" />
                  </button>

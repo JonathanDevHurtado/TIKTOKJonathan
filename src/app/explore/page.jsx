@@ -146,13 +146,10 @@ export default function Explore() {
   const VideoGrid = ({ videos }) => (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-0.5">
       {videos?.filter(v => v && v.id).map(video => (
-        <Link key={video.id} href={`/video/${video.id}`} className="aspect-[3/4] bg-[var(--bg-secondary)] relative group overflow-hidden">
-          <video src={video.video_url} className="w-full h-full object-cover" muted />
-          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <Film className="text-white w-8 h-8" />
-          </div>
-          <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-[10px] font-bold drop-shadow-md">
-            <Play className="w-2 h-2 fill-current" /> {video.views || 0}
+        <Link key={video.id} href={`/video/${video.id}`} className="aspect-[3/4] bg-[var(--bg-secondary)] relative group overflow-hidden hover:z-10 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl rounded-sm">
+          <video src={video.video_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" muted />
+          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+            <Play className="text-white w-8 h-8 scale-0 group-hover:scale-100 transition-transform duration-300 drop-shadow-2xl" />
           </div>
         </Link>
       ))}
@@ -185,7 +182,7 @@ export default function Explore() {
           )}
           <button 
             onClick={() => handleSearch(query)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-tiktok-red hover:bg-[#e0254b] text-white px-6 py-1.5 rounded-full font-bold text-sm transition-all shadow-md active:scale-95"
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-tiktok-red hover:bg-[#e0254b] text-white px-6 py-1.5 rounded-full font-bold text-sm transition-all shadow-md hover:scale-105 active:scale-95 hover:shadow-tiktok-red/20"
           >
             Buscar
           </button>

@@ -13,16 +13,16 @@ function formatNum(n) {
   return num.toString();
 }
 
-function ActionBtn({ icon: Icon, label, active, onClick, pulse, filled }) {
+function ActionBtn({ icon: Icon, label, active, onClick, pulse, filled, hideLabel }) {
   return (
     <button
       className="flex flex-col items-center gap-1 group"
       onClick={onClick}
     >
-      <div className={`p-3 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] backdrop-blur-sm transition-all duration-300 ${pulse ? 'scale-125' : ''} ${active ? 'text-tiktok-red' : 'text-[var(--text-primary)]'} group-hover:scale-110 shadow-lg`}>
-        <Icon className={`w-7 h-7 ${filled ? 'fill-current' : ''}`} strokeWidth={2.5} />
+      <div className={`p-3 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] backdrop-blur-sm transition-all duration-300 ${pulse ? 'scale-125' : ''} ${active ? 'text-tiktok-red shadow-[0_0_15px_rgba(254,44,85,0.3)]' : 'text-[var(--text-primary)]'} group-hover:scale-110 group-active:scale-90 shadow-lg group-hover:shadow-xl`}>
+        <Icon className={`w-7 h-7 ${filled ? 'fill-current' : ''} transition-all duration-300 ${active ? 'scale-110' : ''}`} strokeWidth={2.5} />
       </div>
-      <span className="text-[var(--text-primary)] text-xs font-bold drop-shadow-md transition-colors">{label}</span>
+      {!hideLabel && label && <span className="text-[var(--text-primary)] text-xs font-bold drop-shadow-md transition-colors group-hover:text-white">{label}</span>}
     </button>
   );
 }
@@ -184,7 +184,6 @@ export default function VideoCard({ video, isActive }) {
 
     const newSavedState = !saved;
     setSaved(newSavedState);
-    setSavesCount(prev => newSavedState ? prev + 1 : prev - 1);
 
     if (newSavedState) {
       const { error } = await supabase.from('saves').insert({ video_id: video.id, user_id: session.user.id });
@@ -325,9 +324,8 @@ export default function VideoCard({ video, isActive }) {
           </div>
           <ActionBtn icon={Heart} label={formatNum(likesCount)} active={liked} onClick={handleLike} pulse={likeAnim} filled={liked} />
           <ActionBtn icon={MessageCircle} label={formatNum(commentsCount)} onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }} />
-          <ActionBtn icon={Bookmark} label={formatNum(savesCount)} active={saved} onClick={handleSave} filled={saved} />
+          <ActionBtn icon={Bookmark} label={null} active={saved} onClick={handleSave} filled={saved} hideLabel={true} />
           <ActionBtn icon={Share2} label={formatNum(sharesCount)} onClick={handleShare} />
-          <ActionBtn icon={Eye} label={formatNum(viewsCount)} onClick={(e) => e.stopPropagation()} />
         </div>
 
         <div className="absolute left-4 bottom-8 right-16 z-10 pointer-events-none">

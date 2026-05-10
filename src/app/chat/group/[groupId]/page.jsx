@@ -316,7 +316,7 @@ export default function GroupChatPage() {
               ref={inputRef} value={content} onChange={e => setContent(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }}
               placeholder="Enviar a grupo..."
-              className={`w-full px-4 py-3 pr-10 rounded-2xl text-sm outline-none transition-all border focus:ring-2 focus:ring-tiktok-red/30 focus:border-tiktok-red resize-none min-h-[44px] custom-scrollbar ${isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30' : 'bg-gray-100 border-transparent text-black placeholder:text-black/40 focus:bg-white'}`}
+              className={`w-full px-4 py-3 pr-10 rounded-2xl text-sm outline-none transition-all border focus:ring-2 focus:ring-tiktok-red/30 focus:border-tiktok-red resize-none min-h-[44px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30' : 'bg-gray-100 border-transparent text-black placeholder:text-black/40 focus:bg-white'}`}
               rows={1} style={{ height: content ? 'auto' : '44px' }}
             />
             <div className="absolute right-2 bottom-2">

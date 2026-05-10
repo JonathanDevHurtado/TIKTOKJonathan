@@ -2,9 +2,13 @@
 import { Sidebar, BottomNav } from '../components/Sidebar';
 import { useSession } from './SessionProvider';
 import { ThemeProvider } from '../context/ThemeContext';
+import { usePathname } from 'next/navigation';
 
 export default function ClientLayout({ children }) {
   const session = useSession();
+  const pathname = usePathname();
+  
+  const isChatRoom = pathname?.startsWith('/chat/') && pathname !== '/chat';
 
   return (
     <ThemeProvider>
@@ -15,9 +19,11 @@ export default function ClientLayout({ children }) {
         <main className="flex-1 h-full overflow-y-auto no-scrollbar relative">
           {children}
         </main>
-        <div className="md:hidden fixed bottom-0 w-full z-50 bg-[var(--bg-primary)] border-t border-[var(--border-primary)] pb-safe">
-          <BottomNav session={session} />
-        </div>
+        {!isChatRoom && (
+          <div className="md:hidden fixed bottom-0 w-full z-50 bg-[var(--bg-primary)] border-t border-[var(--border-primary)] pb-safe">
+            <BottomNav session={session} />
+          </div>
+        )}
       </div>
     </ThemeProvider>
   );

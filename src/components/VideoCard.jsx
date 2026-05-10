@@ -252,7 +252,7 @@ export default function VideoCard({ video, isActive }) {
     } catch (err) { console.error(err); }
   };
 
-  const CommentsContent = () => (
+  const commentsContentJsx = (
     <>
       <div className="flex justify-between items-center p-4 border-b border-[var(--border-primary)]">
         <span className="font-bold">{commentsCount} comentarios</span>
@@ -410,7 +410,7 @@ export default function VideoCard({ video, isActive }) {
 
       {showComments && (
         <div className="hidden md:flex w-[350px] flex-col bg-[var(--bg-secondary)] border-l border-[var(--border-primary)] animate-slide-in-right z-10" onClick={e => e.stopPropagation()}>
-          <CommentsContent />
+          {commentsContentJsx}
         </div>
       )}
 
@@ -418,7 +418,7 @@ export default function VideoCard({ video, isActive }) {
         <div className="md:hidden fixed inset-0 z-[100] flex flex-col justify-end" onClick={e => e.stopPropagation()}>
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowComments(false)} />
           <div className="relative bg-[var(--bg-secondary)] w-full h-[75%] rounded-t-2xl flex flex-col animate-slide-up shadow-2xl z-10">
-            <CommentsContent />
+            {commentsContentJsx}
           </div>
         </div>
       )}

@@ -29,7 +29,7 @@ export function Sidebar({ compact, session }) {
   const NAV = [
     { id: 'home',    label: 'Para ti',  href: '/', Icon: Home },
     { id: 'explore', label: 'Explorar', href: '/explore', Icon: Compass },
-    { id: 'profile', label: session ? 'Mi perfil' : 'Iniciar Sesión', href: session ? '/profile/me' : '/login', Icon: session ? User : LogIn },
+    { id: 'profile', label: session ? 'Mi perfil' : 'Registrarse', href: session ? '/profile/me' : '/register', Icon: session ? User : LogIn },
   ];
 
   return (
@@ -73,7 +73,7 @@ export function BottomNav({ session }) {
     { id: 'home',    label: 'Inicio',  href: '/', Icon: Home },
     { id: 'explore', label: 'Explorar', href: '/explore', Icon: Compass },
     { id: 'upload',  label: 'Subir', href: session ? '/upload' : '/login', Icon: Plus, isCenter: true },
-    { id: 'profile', label: session ? 'Perfil' : 'Login', href: session ? '/profile/me' : '/login', Icon: session ? User : LogIn },
+    { id: 'profile', label: session ? 'Perfil' : 'Registro', href: session ? '/profile/me' : '/register', Icon: session ? User : LogIn },
   ];
 
   return (

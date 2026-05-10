@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import VideoCard from '../components/VideoCard';
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../utils/supabase';
 import { VIDEOS } from '../data/videos';
 
@@ -12,9 +13,16 @@ export default function Feed() {
   const touchStart  = useRef(0);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchVideos = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/register');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('videos')
         .select(`*, profiles(username, avatar_url)`)

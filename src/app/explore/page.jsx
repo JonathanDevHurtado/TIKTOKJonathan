@@ -132,7 +132,7 @@ export default function Explore() {
         supabase
           .from('videos')
           .select(`*, profiles(username, avatar_url)`)
-          .or(`description.ilike.%${searchTerm}%,profiles.username.ilike.%${searchTerm}%`)
+          .ilike('description', `%${searchTerm}%`)
           .order('created_at', { ascending: false })
           .limit(30),
         supabase

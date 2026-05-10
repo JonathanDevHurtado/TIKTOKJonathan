@@ -1,9 +1,9 @@
 "use client"
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '../../../../utils/supabase';
-import { useSession } from '../../../SessionProvider';
-import { useTheme } from '../../../../context/ThemeContext';
+import { supabase } from '../../../utils/supabase';
+import { useSession } from '../../SessionProvider';
+import { useTheme } from '../../../context/ThemeContext';
 import { ChevronLeft, Send, Loader2, MessageCircle, Image as ImageIcon, Smile, MoreVertical, Edit2, Trash2, Paperclip, X } from 'lucide-react';
 import Link from 'next/link';
 

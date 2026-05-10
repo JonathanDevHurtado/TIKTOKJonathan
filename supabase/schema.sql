@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
 );
 
 INSERT INTO public.categories (name) VALUES 
-('Gaming'), ('Entretenimiento'), ('Música'), ('Educación'), ('Deportes'), ('Tecnología'), ('Otros')
+('gaming'), ('cocina'), ('paisajes'), ('musica'), ('tecnologia'), ('deportes'), ('arte'), ('viajes'), ('moda'), ('fitness'), ('bienestar'), ('naturaleza'), ('aventura'), ('vlogs'), ('cine'), ('anime'), ('hardware'), ('noticias'), ('humor'), ('educacion'), ('diseño'), ('motor'), ('mascotas'), ('fotografia'), ('historia'), ('ciencia'), ('curiosidades'), ('negocios')
 ON CONFLICT (name) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS public.videos (

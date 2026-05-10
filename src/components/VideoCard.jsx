@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from 'react';
-import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play, X, Send } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play, X, Send, PictureInPicture } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
 import { useSession } from '../app/SessionProvider';
@@ -38,6 +38,20 @@ export default function VideoCard({ video, isActive }) {
   const [heartPos, setHeartPos]   = useState({ x: 0, y: 0 });
   const [progress, setProgress]   = useState(0);
   const [muted, setMuted] = useState(true);
+  const [volume, setVolume] = useState(1);
+
+  const togglePiP = async (e) => {
+    e.stopPropagation();
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (videoRef.current) {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Estados de DB
   const [likesCount, setLikesCount] = useState(video.likes || 0);
@@ -190,12 +204,47 @@ export default function VideoCard({ video, isActive }) {
         <div className="h-full bg-white/80 transition-all duration-75" style={{ width: `${progress}%` }} />
       </div>
 
+      {/* Picture in Picture (Top Left) */}
       <button
-        className="absolute top-4 right-4 p-2 rounded-full bg-black/40 backdrop-blur-sm text-white z-20 hover:bg-black/60 transition"
-        onClick={e => { e.stopPropagation(); setMuted(m => !m); }}
+        className="absolute top-4 left-4 p-2 rounded-full bg-black/40 backdrop-blur-sm text-white z-20 hover:bg-black/60 transition"
+        onClick={togglePiP}
       >
-        {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        <PictureInPicture className="w-5 h-5" />
       </button>
+
+      {/* Control de Volumen con Scroll (Top Right) */}
+      <div 
+        className="absolute top-4 right-4 flex items-center gap-2 z-20 bg-black/40 backdrop-blur-sm rounded-full p-2 hover:bg-black/60 transition-all duration-300 w-10 hover:w-32 overflow-hidden group"
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          className="text-white flex-shrink-0"
+          onClick={() => {
+            setMuted(!muted);
+            if (videoRef.current) videoRef.current.muted = !muted;
+          }}
+        >
+          {muted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </button>
+        
+        <input 
+          type="range" 
+          min="0" 
+          max="1" 
+          step="0.01" 
+          value={muted ? 0 : volume}
+          onChange={(e) => {
+            const val = parseFloat(e.target.value);
+            setVolume(val);
+            setMuted(val === 0);
+            if (videoRef.current) {
+              videoRef.current.volume = val;
+              videoRef.current.muted = val === 0;
+            }
+          }}
+          className="w-16 h-1 bg-white/30 rounded-full appearance-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
+        />
+      </div>
 
       <div className="absolute bottom-0 left-0 p-4 pb-6 w-3/4 flex flex-col gap-2 z-20 bg-gradient-to-t from-black/80 to-transparent">
         <div className="flex items-center gap-2 mb-1" onClick={e => e.stopPropagation()}>

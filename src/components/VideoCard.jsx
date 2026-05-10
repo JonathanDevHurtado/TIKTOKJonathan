@@ -227,7 +227,7 @@ export default function VideoCard({ video, isActive }) {
   };
 
   return (
-    <div className="relative w-full h-full md:h-[calc(100vh-2rem)] md:w-fit md:aspect-[9/16] md:rounded-2xl overflow-hidden bg-black flex items-center justify-center cursor-pointer group" onClick={handleClick}>
+    <div className={`relative w-full h-full md:h-[calc(100vh-2rem)] md:w-fit md:aspect-[9/16] md:rounded-2xl overflow-hidden bg-black flex items-center justify-center cursor-pointer group transition-transform duration-500 ease-in-out ${showComments ? 'md:-translate-x-[200px]' : ''}`} onClick={handleClick}>
       
       <video
         ref={videoRef}

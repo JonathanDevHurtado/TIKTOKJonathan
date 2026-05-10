@@ -5,7 +5,7 @@ import { supabase } from '../../../utils/supabase';
 import { useSession } from '../../SessionProvider';
 import EditProfileModal from '../../../components/EditProfileModal';
 import { useTheme } from '../../../context/ThemeContext';
-import { Trash2, Heart, Bookmark, LogOut, Edit2, Menu, Sun, Moon, AlertTriangle, X } from 'lucide-react';
+import { Trash2, Heart, Bookmark, LogOut, Edit2, Menu, Sun, Moon, AlertTriangle, X, Play } from 'lucide-react';
 
 export default function Profile() {
   const { username } = useParams();
@@ -130,8 +130,8 @@ export default function Profile() {
       <div className="flex flex-col items-center p-4 md:p-8">
         <div className="relative mb-4">
           <img 
-            src={profile.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + profile.username} 
-            alt={profile.username} 
+            src={profile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile?.username || 'user')} 
+            alt={profile?.username || 'avatar'} 
             className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-tiktok-dark-hover object-cover shadow-xl"
           />
           {isOwner && (
@@ -141,8 +141,8 @@ export default function Profile() {
           )}
         </div>
 
-        <h2 className="text-xl font-bold mb-1">@{profile.username}</h2>
-        {profile.full_name && <h3 className="text-sm font-semibold opacity-70 mb-4">{profile.full_name}</h3>}
+        <h2 className="text-xl font-bold mb-1">@{profile?.username || 'cargando...'}</h2>
+        {profile?.full_name && <h3 className="text-sm font-semibold opacity-70 mb-4">{profile.full_name}</h3>}
 
         <div className="flex gap-8 mb-6 text-center">
           <div><p className="font-bold text-lg">{stats.following}</p><p className="text-xs opacity-60">Siguiendo</p></div>
@@ -180,8 +180,8 @@ export default function Profile() {
 
       {/* Grid - Mobile First 3 columns */}
       <div className="grid grid-cols-3 gap-0.5 flex-1 pb-20">
-        {(activeTab === 'videos' ? profile.videos : favorites)?.length > 0 ? (
-          (activeTab === 'videos' ? profile.videos : favorites).map(video => (
+        {((activeTab === 'videos' ? profile?.videos : favorites) || [])?.length > 0 ? (
+          ((activeTab === 'videos' ? profile?.videos : favorites) || []).filter(v => v && v.id).map(video => (
             <div 
               key={video.id} 
               className="aspect-[3/4] bg-tiktok-dark-hover/5 relative cursor-pointer group overflow-hidden" 

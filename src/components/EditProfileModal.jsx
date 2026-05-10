@@ -6,13 +6,24 @@ import { supabase } from '../utils/supabase';
 export default function EditProfileModal({ isOpen, onClose, profile, onUpdate }) {
   const [formData, setFormData] = useState({
     username: profile?.username || '',
-    full_name: profile?.full_name || '',
     bio: profile?.bio || '',
     birthday: profile?.birthday || '',
     age: profile?.age || '',
     gender: profile?.gender || '',
     avatar_url: profile?.avatar_url || ''
   });
+
+  const calculateAge = (birthday) => {
+    if (!birthday) return '';
+    const birthDate = new Date(birthday);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age > 0 ? age : 0;
+  };
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
@@ -21,7 +32,12 @@ export default function EditProfileModal({ isOpen, onClose, profile, onUpdate })
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'birthday') {
+      const computedAge = calculateAge(value);
+      setFormData(prev => ({ ...prev, [name]: value, age: computedAge }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFileChange = async (e) => {
@@ -61,7 +77,6 @@ export default function EditProfileModal({ isOpen, onClose, profile, onUpdate })
         .from('profiles')
         .update({
           username: formData.username,
-          full_name: formData.full_name,
           bio: formData.bio,
           birthday: formData.birthday || null,
           age: formData.age ? parseInt(formData.age) : null,
@@ -124,19 +139,8 @@ export default function EditProfileModal({ isOpen, onClose, profile, onUpdate })
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-colors"
+                className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-all duration-300 hover:scale-[1.01] hover:shadow-lg focus:scale-[1.01] focus:shadow-xl"
                 required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-tiktok-gray mb-1">Nombre completo</label>
-              <input 
-                type="text" 
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleChange}
-                className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-colors"
               />
             </div>
 
@@ -146,7 +150,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onUpdate })
                 name="bio"
                 value={formData.bio}
                 onChange={handleChange}
-                className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-colors min-h-[80px]"
+                className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-all duration-300 min-h-[80px] hover:scale-[1.01] hover:shadow-lg focus:scale-[1.01] focus:shadow-xl"
                 placeholder="Cuenta algo sobre ti..."
               />
             </div>
@@ -159,7 +163,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onUpdate })
                   name="birthday"
                   value={formData.birthday}
                   onChange={handleChange}
-                  className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-colors"
+                  className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-all duration-300 hover:scale-[1.01] hover:shadow-lg focus:scale-[1.01] focus:shadow-xl"
                 />
               </div>
               <div>
@@ -169,7 +173,8 @@ export default function EditProfileModal({ isOpen, onClose, profile, onUpdate })
                   name="age"
                   value={formData.age}
                   onChange={handleChange}
-                  className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-colors"
+                  readOnly
+                  className="w-full bg-[#2a2a2a] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none opacity-80 cursor-not-allowed"
                 />
               </div>
             </div>
@@ -180,7 +185,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onUpdate })
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
-                className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-colors appearance-none"
+                className="w-full bg-[#1e1e1e] border border-tiktok-dark-hover rounded-md px-4 py-2 text-white focus:outline-none focus:border-tiktok-red transition-all duration-300 appearance-none hover:scale-[1.01] hover:shadow-lg focus:scale-[1.01] focus:shadow-xl cursor-pointer"
               >
                 <option value="">Seleccionar...</option>
                 <option value="Masculino">Masculino</option>
@@ -196,14 +201,14 @@ export default function EditProfileModal({ isOpen, onClose, profile, onUpdate })
           <button 
             type="button"
             onClick={onClose}
-            className="flex-1 bg-[#1e1e1e] hover:bg-tiktok-dark-hover text-white font-semibold py-2 rounded-md transition-colors border border-tiktok-dark-hover"
+            className="flex-1 bg-[#1e1e1e] hover:bg-tiktok-dark-hover text-white font-semibold py-2.5 rounded-full transition-all duration-300 border border-tiktok-dark-hover hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
           >
             Cancelar
           </button>
           <button 
             onClick={handleSubmit}
             disabled={loading || uploading}
-            className="flex-1 bg-tiktok-red hover:bg-[#e0254b] disabled:opacity-50 text-white font-semibold py-2 rounded-md transition-colors flex items-center justify-center gap-2"
+            className="flex-1 bg-tiktok-red hover:bg-[#e0254b] disabled:opacity-50 text-white font-semibold py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 hover:scale-105 active:scale-95 shadow-lg hover:shadow-tiktok-red/20"
           >
             {loading && <Loader2 className="animate-spin w-4 h-4" />}
             Guardar

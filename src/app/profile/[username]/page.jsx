@@ -108,18 +108,18 @@ export default function Profile() {
             
             {isMenuOpen && (
               <div className={`absolute right-0 mt-2 w-56 rounded-xl shadow-2xl border p-2 z-50 animate-in fade-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-[#1e1e1e] border-tiktok-dark-hover' : 'bg-white border-gray-100'}`}>
-                <button onClick={toggleTheme} className="w-full flex items-center gap-3 p-3 hover:bg-tiktok-dark-hover/10 rounded-lg transition-colors">
-                  {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-indigo-600" />}
-                  <span>Modo {theme === 'dark' ? 'Claro' : 'Oscuro'}</span>
+                <button onClick={toggleTheme} className="w-full flex items-center gap-3 p-3 hover:bg-tiktok-dark-hover/10 rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 group">
+                  {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400 group-hover:rotate-12 transition-transform" /> : <Moon className="w-5 h-5 text-indigo-600 group-hover:-rotate-12 transition-transform" />}
+                  <span className="font-medium">Modo {theme === 'dark' ? 'Claro' : 'Oscuro'}</span>
                 </button>
-                <button onClick={() => { supabase.auth.signOut(); router.push('/'); }} className="w-full flex items-center gap-3 p-3 hover:bg-tiktok-dark-hover/10 rounded-lg transition-colors text-tiktok-red">
-                  <LogOut className="w-5 h-5" />
-                  <span>Cerrar sesión</span>
+                <button onClick={() => { supabase.auth.signOut(); router.push('/'); }} className="w-full flex items-center gap-3 p-3 hover:bg-tiktok-dark-hover/10 rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 text-tiktok-red group">
+                  <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <span className="font-medium">Cerrar sesión</span>
                 </button>
-                <div className="h-px bg-tiktok-dark-hover/10 my-2" />
-                <button onClick={() => { setIsDeleteModalOpen(true); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-red-500/10 rounded-lg transition-colors text-red-500">
-                  <Trash2 className="w-5 h-5" />
-                  <span>Borrar cuenta</span>
+                <div className="h-px bg-tiktok-dark-hover/10 my-2 mx-2" />
+                <button onClick={() => { setIsDeleteModalOpen(true); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-red-500/10 rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 text-red-500 group">
+                  <Trash2 className="w-5 h-5 group-hover:shake transition-transform" />
+                  <span className="font-medium">Borrar cuenta</span>
                 </button>
               </div>
             )}
@@ -151,11 +151,14 @@ export default function Profile() {
         </div>
 
         {isOwner ? (
-          <button onClick={() => setIsEditModalOpen(true)} className={`flex items-center gap-2 px-12 py-2 rounded font-bold border transition-colors ${theme === 'dark' ? 'bg-[#1e1e1e] border-tiktok-dark-hover hover:bg-tiktok-dark-hover' : 'bg-gray-100 border-gray-200 hover:bg-gray-200'}`}>
+          <button 
+            onClick={() => setIsEditModalOpen(true)} 
+            className={`flex items-center gap-2 px-12 py-2.5 rounded-full font-bold border transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg ${theme === 'dark' ? 'bg-[#2a2a2a] border-tiktok-dark-hover hover:bg-[#3a3a3a]' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+          >
             <Edit2 className="w-4 h-4" /> Editar perfil
           </button>
         ) : (
-          <button className="bg-tiktok-red hover:bg-[#e0254b] text-white font-bold py-2 px-16 rounded shadow-lg transition-all">Seguir</button>
+          <button className="bg-tiktok-red hover:bg-[#e0254b] text-white font-bold py-2.5 px-16 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 hover:shadow-tiktok-red/20">Seguir</button>
         )}
 
         <p className="mt-6 text-sm text-center max-w-sm opacity-80">{profile.bio || 'Sin biografía todavía.'}</p>
@@ -179,13 +182,22 @@ export default function Profile() {
       <div className="grid grid-cols-3 gap-0.5 flex-1 pb-20">
         {(activeTab === 'videos' ? profile.videos : favorites)?.length > 0 ? (
           (activeTab === 'videos' ? profile.videos : favorites).map(video => (
-            <div key={video.id} className="aspect-[3/4] bg-tiktok-dark-hover/10 relative cursor-pointer group" onClick={() => router.push(`/video/${video.id}`)}>
-               <video src={video.video_url} className="w-full h-full object-cover" muted />
-               <div className="absolute bottom-1 left-2 flex items-center gap-1 text-white text-xs font-bold drop-shadow-md">
-                 ▶ {video.views || 0}
+            <div 
+              key={video.id} 
+              className="aspect-[3/4] bg-tiktok-dark-hover/5 relative cursor-pointer group overflow-hidden" 
+              onClick={() => router.push(`/video/${video.id}`)}
+            >
+               <video src={video.video_url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" muted />
+               <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+               <div className="absolute bottom-2 left-2 flex items-center gap-1.5 text-white text-xs font-bold drop-shadow-md z-10">
+                 <Play className="w-3 h-3 fill-current" />
+                 {video.views || 0}
                </div>
                {isOwner && activeTab === 'videos' && (
-                 <button onClick={(e) => handleDeleteVideo(video.id, e)} className="absolute top-1 right-1 p-1 bg-black/40 rounded-full text-white/70 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <button 
+                   onClick={(e) => handleDeleteVideo(video.id, e)} 
+                   className="absolute top-2 right-2 p-1.5 bg-black/40 hover:bg-red-500 rounded-full text-white transition-all transform scale-0 group-hover:scale-100 z-20"
+                 >
                    <X className="w-4 h-4" />
                  </button>
                )}

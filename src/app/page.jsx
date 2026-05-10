@@ -80,7 +80,7 @@ export default function Feed() {
   }
 
   return (
-    <div className="relative h-full w-full md:max-w-[600px] mx-auto flex justify-center bg-tiktok-black">
+    <div className="relative h-full w-full mx-auto flex justify-center bg-tiktok-black">
       
       {/* Desktop Controls */}
       <div className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 flex-col gap-4 z-50">

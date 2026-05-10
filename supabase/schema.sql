@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   full_name TEXT,
   avatar_url TEXT,
   bio TEXT,
+  birthday DATE,
+  age INTEGER,
+  gender TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -38,6 +41,14 @@ CREATE TABLE IF NOT EXISTS public.likes (
   UNIQUE(user_id, video_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.saves (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  video_id UUID REFERENCES public.videos(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(user_id, video_id)
+);
+
 CREATE TABLE IF NOT EXISTS public.comments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
@@ -57,6 +68,7 @@ CREATE TABLE IF NOT EXISTS public.followers (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.videos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.saves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.followers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
@@ -86,6 +98,13 @@ DROP POLICY IF EXISTS "Users can insert their own likes." ON public.likes;
 CREATE POLICY "Users can insert their own likes." ON public.likes FOR INSERT WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Users can delete their own likes." ON public.likes;
 CREATE POLICY "Users can delete their own likes." ON public.likes FOR DELETE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Saves are viewable by owner." ON public.saves;
+CREATE POLICY "Saves are viewable by owner." ON public.saves FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert their own saves." ON public.saves;
+CREATE POLICY "Users can insert their own saves." ON public.saves FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete their own saves." ON public.saves;
+CREATE POLICY "Users can delete their own saves." ON public.saves FOR DELETE USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Comments are viewable by everyone." ON public.comments;
 CREATE POLICY "Comments are viewable by everyone." ON public.comments FOR SELECT USING (true);
@@ -143,5 +162,34 @@ DROP POLICY IF EXISTS "Users can upload avatars" ON storage.objects;
 CREATE POLICY "Users can upload avatars" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid() = owner);
 DROP POLICY IF EXISTS "Users can update their avatars" ON storage.objects;
 CREATE POLICY "Users can update their avatars" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid() = owner);
-DROP POLICY IF EXISTS "Users can delete their avatars" ON storage.objects;
 CREATE POLICY "Users can delete their avatars" ON storage.objects FOR DELETE USING (bucket_id = 'avatars' AND auth.uid() = owner);
+
+-- =============================================
+-- FUNCIONES RPC
+-- =============================================
+
+-- Incrementa las visualizaciones de un video de forma atómica.
+-- Se ejecuta como SECURITY DEFINER para que cualquier visitante
+-- (sin importar si está logueado) pueda sumar una vista.
+CREATE OR REPLACE FUNCTION public.increment_view(vid_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE public.videos
+  SET views = COALESCE(views, 0) + 1
+  WHERE id = vid_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Incrementa el contador de compartidos de un video de forma atómica.
+CREATE OR REPLACE FUNCTION public.increment_share(vid_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE public.videos
+  SET shares = COALESCE(shares, 0) + 1
+  WHERE id = vid_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Permisos: permite a cualquier usuario (incluso anónimo) llamar a estas funciones.
+GRANT EXECUTE ON FUNCTION public.increment_view(UUID) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_share(UUID) TO anon, authenticated;

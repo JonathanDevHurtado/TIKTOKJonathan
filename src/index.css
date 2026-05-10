@@ -1,47 +1,69 @@
 @import "tailwindcss";
 
 @theme {
-  --color-tiktok-black: #000000;
-  --color-tiktok-dark: #121212;
-  --color-tiktok-dark-hover: #ffffff14;
   --color-tiktok-red: #fe2c55;
-  --color-tiktok-cyan: #25f4ee;
-  --color-tiktok-gray: #8a8b91;
-  --color-tiktok-text: #ffffff;
+  --color-tiktok-black: var(--bg-primary);
+  --color-tiktok-dark-hover: var(--bg-secondary);
+  --color-tiktok-gray: #8a8a8e;
+  --color-tiktok-text: var(--text-primary);
+  
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-slide-in-right: slide-in-right 0.3s ease-out;
+
+  @keyframes slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+}
+
+:root {
+  --bg-primary: #010101;
+  --bg-secondary: #121212;
+  --text-primary: #ffffff;
+  --text-secondary: #8a8a8e;
+  --border-primary: rgba(255, 255, 255, 0.12);
+}
+
+.light {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f1f1f2;
+  --text-primary: #161823;
+  --text-secondary: #51535d;
+  --border-primary: rgba(22, 24, 35, 0.12);
 }
 
 @layer base {
-  html,
-  body {
-    background-color: var(--color-tiktok-black);
-    color: var(--color-tiktok-text);
+  html, body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   }
 }
 
-/* Custom scrollbar for webkit */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
-  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #ffffff33;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #ffffff66;
+  background: var(--border-primary);
+  border-radius: 10px;
 }
 
-/* Hide scrollbar but keep functionality for feed */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -50,7 +72,6 @@
   scrollbar-width: none;
 }
 
-/* Safe area for mobile bottoms */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }

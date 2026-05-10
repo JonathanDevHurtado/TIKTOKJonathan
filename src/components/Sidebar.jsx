@@ -83,8 +83,8 @@ export function BottomNav({ session }) {
         
         if (isCenter) {
           return (
-            <Link key={id} href={href} className="flex flex-col items-center justify-center h-full px-2">
-               <div className="bg-white text-black h-8 px-4 rounded-xl flex items-center justify-center border-l-4 border-l-tiktok-cyan border-r-4 border-r-tiktok-red hover:opacity-90 transition-opacity">
+            <Link key={id} href={href} className="flex flex-col items-center justify-center h-full px-2 group">
+               <div className="bg-[var(--text-primary)] text-[var(--bg-primary)] h-8 px-4 rounded-xl flex items-center justify-center border-l-4 border-l-tiktok-cyan border-r-4 border-r-tiktok-red group-hover:scale-105 transition-transform">
                   <Icon className="w-5 h-5 font-bold" strokeWidth={3} />
                </div>
             </Link>
@@ -95,10 +95,10 @@ export function BottomNav({ session }) {
           <Link
             key={id}
             href={href}
-            className={`flex flex-col items-center justify-center h-full px-4 gap-1 transition-colors ${isActive ? 'text-tiktok-text' : 'text-tiktok-gray hover:text-white'}`}
+            className={`flex flex-col items-center justify-center h-full px-4 gap-1 transition-colors ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
           >
-            <Icon className={`w-6 h-6 ${isActive ? 'fill-current text-white' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
-            <span className={`text-[10px] font-medium ${isActive ? 'font-bold text-white' : ''}`}>{label}</span>
+            <Icon className={`w-6 h-6 ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+            <span className={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}>{label}</span>
           </Link>
         );
       })}

@@ -1,130 +1,219 @@
 "use client"
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../utils/supabase';
 import { useSession } from '../../SessionProvider';
+import EditProfileModal from '../../../components/EditProfileModal';
+import { useTheme } from '../../../context/ThemeContext';
+import { Trash2, Heart, Bookmark, LogOut, Edit2, Menu, Sun, Moon, AlertTriangle, X } from 'lucide-react';
 
 export default function Profile() {
   const { username } = useParams();
+  const session = useSession();
+  const { theme, toggleTheme } = useTheme();
   const router = useRouter();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('videos');
+  const [favorites, setFavorites] = useState([]);
+  const [stats, setStats] = useState({ followers: 0, following: 0, likes: 0 });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      let targetUsername = username;
-      
-      if (username === 'me') {
-        if (!session) {
-          router.push('/login');
-          return;
-        }
-        // Buscar el profile del usuario actual
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (userProfile) targetUsername = userProfile.username;
+  const fetchProfile = useCallback(async () => {
+    let targetUsername = username;
+    
+    if (username === 'me') {
+      if (!session) {
+        router.push('/login');
+        return;
       }
-
-      const { data } = await supabase
+      const { data: userProfile } = await supabase
         .from('profiles')
-        .select('*, videos(*)')
-        .eq('username', targetUsername)
+        .select('username')
+        .eq('id', session.user.id)
         .single();
         
-      setProfile(data);
-      setLoading(false);
-    };
+      if (userProfile) targetUsername = userProfile.username;
+    }
 
-    fetchProfile();
+    const { data } = await supabase
+      .from('profiles')
+      .select('*, videos(*)')
+      .eq('username', targetUsername)
+      .single();
+      
+    if (data) {
+      setProfile(data);
+      
+      const { count: followersCount } = await supabase.from('followers').select('*', { count: 'exact', head: true }).eq('following_id', data.id);
+      const { count: followingCount } = await supabase.from('followers').select('*', { count: 'exact', head: true }).eq('follower_id', data.id);
+      
+      const videoIds = data.videos?.map(v => v.id) || [];
+      let totalLikes = 0;
+      if (videoIds.length > 0) {
+        const { count: likesCount } = await supabase.from('likes').select('*', { count: 'exact', head: true }).in('video_id', videoIds);
+        totalLikes = likesCount || 0;
+      }
+
+      setStats({ followers: followersCount || 0, following: followingCount || 0, likes: totalLikes });
+
+      if (session?.user?.id === data.id) {
+        const { data: savedData } = await supabase.from('saves').select('*, videos(*, profiles(username, avatar_url))').eq('user_id', session.user.id);
+        if (savedData) setFavorites(savedData.map(s => s.videos));
+      }
+    }
+    setLoading(false);
   }, [username, session, router]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  const handleDeleteVideo = async (videoId, e) => {
+    e.stopPropagation();
+    if (!confirm('¿Estás seguro de que quieres eliminar este video?')) return;
+    const { error } = await supabase.from('videos').delete().eq('id', videoId);
+    if (!error) fetchProfile();
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!profile) return;
+    const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
+    if (!error) {
+      await supabase.auth.signOut();
+      router.push('/');
+    } else {
+      alert("Error al borrar cuenta: " + error.message);
+    }
+  };
 
   if (loading) return <div className="flex-1 flex justify-center items-center h-full"><div className="animate-spin w-8 h-8 border-4 border-tiktok-red border-t-transparent rounded-full"></div></div>;
 
-  const isMe = username === 'me' || profile?.id === session?.user?.id;
+  if (!profile) return <div className="flex-1 flex justify-center items-center">Perfil no encontrado</div>;
+
+  const isOwner = session?.user?.id === profile.id;
 
   return (
-    <div className="w-full max-w-4xl mx-auto h-full flex flex-col p-4 md:p-8">
+    <div className={`w-full max-w-4xl mx-auto h-full flex flex-col transition-colors duration-500 ${theme === 'dark' ? 'bg-tiktok-black text-white' : 'bg-white text-black'}`}>
       
-      <div className="flex flex-col items-center mt-8 mb-6">
-        <img 
-          src={profile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile?.username || username)} 
-          alt={username} 
-          className="w-24 h-24 rounded-full border-2 border-tiktok-dark-hover mb-4 object-cover"
-        />
-        <h1 className="text-2xl font-bold text-white mb-1">@{profile?.username || username}</h1>
-        <h2 className="text-md font-semibold text-white mb-4">{profile?.full_name || 'Usuario de TikTok'}</h2>
+      {/* Top Header with Hamburger Menu */}
+      <div className="flex justify-end items-center p-4 sticky top-0 z-40 bg-inherit border-b border-tiktok-dark-hover/10">
+        {isOwner && (
+          <div className="relative">
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 hover:bg-tiktok-dark-hover/10 rounded-full transition-colors">
+              <Menu className="w-6 h-6" />
+            </button>
+            
+            {isMenuOpen && (
+              <div className={`absolute right-0 mt-2 w-56 rounded-xl shadow-2xl border p-2 z-50 animate-in fade-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-[#1e1e1e] border-tiktok-dark-hover' : 'bg-white border-gray-100'}`}>
+                <button onClick={toggleTheme} className="w-full flex items-center gap-3 p-3 hover:bg-tiktok-dark-hover/10 rounded-lg transition-colors">
+                  {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-indigo-600" />}
+                  <span>Modo {theme === 'dark' ? 'Claro' : 'Oscuro'}</span>
+                </button>
+                <button onClick={() => { supabase.auth.signOut(); router.push('/'); }} className="w-full flex items-center gap-3 p-3 hover:bg-tiktok-dark-hover/10 rounded-lg transition-colors text-tiktok-red">
+                  <LogOut className="w-5 h-5" />
+                  <span>Cerrar sesión</span>
+                </button>
+                <div className="h-px bg-tiktok-dark-hover/10 my-2" />
+                <button onClick={() => { setIsDeleteModalOpen(true); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-3 hover:bg-red-500/10 rounded-lg transition-colors text-red-500">
+                  <Trash2 className="w-5 h-5" />
+                  <span>Borrar cuenta</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-        <div className="flex gap-6 mb-6 text-white text-center">
-          <div className="flex flex-col">
-            <strong className="text-lg">0</strong>
-            <span className="text-xs text-tiktok-gray">Siguiendo</span>
-          </div>
-          <div className="flex flex-col">
-            <strong className="text-lg">0</strong>
-            <span className="text-xs text-tiktok-gray">Seguidores</span>
-          </div>
-          <div className="flex flex-col">
-            <strong className="text-lg">0</strong>
-            <span className="text-xs text-tiktok-gray">Me gusta</span>
-          </div>
+      <div className="flex flex-col items-center p-4 md:p-8">
+        <div className="relative mb-4">
+          <img 
+            src={profile.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + profile.username} 
+            alt={profile.username} 
+            className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-tiktok-dark-hover object-cover shadow-xl"
+          />
+          {isOwner && (
+            <button onClick={() => setIsEditModalOpen(true)} className="absolute bottom-0 right-0 bg-white text-black p-1.5 rounded-full shadow-lg hover:scale-110 transition-transform">
+              <Edit2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        {isMe ? (
-          <div className="flex gap-2">
-            <button className="bg-[#1e1e1e] hover:bg-tiktok-dark-hover border border-tiktok-gray text-white font-semibold py-2 px-8 rounded-md transition-colors w-full md:w-auto min-w-[150px]">
-              Editar perfil
-            </button>
-            <button 
-              onClick={async () => {
-                await supabase.auth.signOut();
-                router.push('/');
-              }} 
-              className="bg-red-900/20 hover:bg-red-900/40 border border-red-500/50 text-red-500 font-semibold py-2 px-4 rounded-md transition-colors"
-            >
-              Salir
-            </button>
-          </div>
-        ) : (
-          <button className="bg-tiktok-red hover:bg-[#e0254b] text-white font-bold py-2 px-8 rounded-md transition-colors w-full md:w-auto min-w-[200px]">
-            Seguir
+        <h2 className="text-xl font-bold mb-1">@{profile.username}</h2>
+        {profile.full_name && <h3 className="text-sm font-semibold opacity-70 mb-4">{profile.full_name}</h3>}
+
+        <div className="flex gap-8 mb-6 text-center">
+          <div><p className="font-bold text-lg">{stats.following}</p><p className="text-xs opacity-60">Siguiendo</p></div>
+          <div><p className="font-bold text-lg">{stats.followers}</p><p className="text-xs opacity-60">Seguidores</p></div>
+          <div><p className="font-bold text-lg">{stats.likes}</p><p className="text-xs opacity-60">Me gusta</p></div>
+        </div>
+
+        {isOwner ? (
+          <button onClick={() => setIsEditModalOpen(true)} className={`flex items-center gap-2 px-12 py-2 rounded font-bold border transition-colors ${theme === 'dark' ? 'bg-[#1e1e1e] border-tiktok-dark-hover hover:bg-tiktok-dark-hover' : 'bg-gray-100 border-gray-200 hover:bg-gray-200'}`}>
+            <Edit2 className="w-4 h-4" /> Editar perfil
           </button>
+        ) : (
+          <button className="bg-tiktok-red hover:bg-[#e0254b] text-white font-bold py-2 px-16 rounded shadow-lg transition-all">Seguir</button>
         )}
 
-        <p className="mt-6 text-sm text-center max-w-md text-white">
-          {profile?.bio || 'Sin biografía todavía.'}
-        </p>
+        <p className="mt-6 text-sm text-center max-w-sm opacity-80">{profile.bio || 'Sin biografía todavía.'}</p>
       </div>
 
-      <div className="flex w-full border-b border-tiktok-dark-hover mb-2">
-        <div className="flex-1 text-center py-3 border-b-2 border-white text-white font-semibold cursor-pointer">
+      {/* Tabs */}
+      <div className="flex w-full border-b border-tiktok-dark-hover/10">
+        <button onClick={() => setActiveTab('videos')} className={`flex-1 py-3 font-semibold relative ${activeTab === 'videos' ? 'opacity-100' : 'opacity-40'}`}>
           Videos
-        </div>
-        <div className="flex-1 text-center py-3 text-tiktok-gray font-semibold cursor-pointer hover:text-white transition-colors">
-          Me gusta
-        </div>
+          {activeTab === 'videos' && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-current rounded-full" />}
+        </button>
+        {isOwner && (
+          <button onClick={() => setActiveTab('favorites')} className={`flex-1 py-3 font-semibold relative flex items-center justify-center gap-2 ${activeTab === 'favorites' ? 'opacity-100' : 'opacity-40'}`}>
+            <Bookmark className="w-4 h-4" /> Favoritos
+            {activeTab === 'favorites' && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-current rounded-full" />}
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-3 gap-1 md:gap-4 flex-1">
-        {profile?.videos && profile.videos.length > 0 ? (
-          profile.videos.map(video => (
-            <div key={video.id} className="aspect-[3/4] bg-[#1e1e1e] rounded-md relative cursor-pointer group overflow-hidden">
+      {/* Grid - Mobile First 3 columns */}
+      <div className="grid grid-cols-3 gap-0.5 flex-1 pb-20">
+        {(activeTab === 'videos' ? profile.videos : favorites)?.length > 0 ? (
+          (activeTab === 'videos' ? profile.videos : favorites).map(video => (
+            <div key={video.id} className="aspect-[3/4] bg-tiktok-dark-hover/10 relative cursor-pointer group" onClick={() => router.push(`/video/${video.id}`)}>
                <video src={video.video_url} className="w-full h-full object-cover" muted />
-               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                 <span className="text-white text-xs font-semibold">▶ {video.views || 0}</span>
+               <div className="absolute bottom-1 left-2 flex items-center gap-1 text-white text-xs font-bold drop-shadow-md">
+                 ▶ {video.views || 0}
                </div>
+               {isOwner && activeTab === 'videos' && (
+                 <button onClick={(e) => handleDeleteVideo(video.id, e)} className="absolute top-1 right-1 p-1 bg-black/40 rounded-full text-white/70 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <X className="w-4 h-4" />
+                 </button>
+               )}
             </div>
           ))
         ) : (
-          <div className="col-span-3 text-center text-tiktok-gray mt-12 flex flex-col items-center">
-            <p className="text-lg font-bold text-white mb-2">No hay videos</p>
-            <p>Este usuario no ha publicado videos todavía.</p>
-          </div>
+          <div className="col-span-3 text-center py-20 opacity-40">No hay videos todavía</div>
         )}
       </div>
+
+      {/* Modals */}
+      {isEditModalOpen && <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} profile={profile} onUpdate={fetchProfile} />}
+      
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl border text-center ${theme === 'dark' ? 'bg-[#121212] border-tiktok-dark-hover' : 'bg-white border-gray-100'}`}>
+            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">¿Borrar cuenta?</h3>
+            <p className="text-sm opacity-60 mb-8">Esta acción es irreversible. Se borrarán todos tus videos y datos de perfil.</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={handleDeleteAccount} className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-colors">Sí, borrar para siempre</button>
+              <button onClick={() => setIsDeleteModalOpen(false)} className={`font-bold py-3 rounded-xl transition-colors ${theme === 'dark' ? 'bg-[#1e1e1e] hover:bg-tiktok-dark-hover' : 'bg-gray-100 hover:bg-gray-200'}`}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

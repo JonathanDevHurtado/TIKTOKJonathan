@@ -1,7 +1,7 @@
 "use client"
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, User, Plus, LogIn } from 'lucide-react';
+import { Home, Compass, User, Plus, LogIn, MessageSquare } from 'lucide-react';
 
 export function Logo({ compact }) {
   return (
@@ -27,8 +27,9 @@ export function Sidebar({ compact, session }) {
   const pathname = usePathname();
 
   const NAV = [
-    { id: 'home',    label: 'Para ti',  href: '/', Icon: Home },
-    { id: 'explore', label: 'Explorar', href: '/explore', Icon: Compass },
+    { id: 'home',    label: 'Para ti',   href: '/',            Icon: Home },
+    { id: 'explore', label: 'Explorar',  href: '/explore',     Icon: Compass },
+    { id: 'chat',    label: 'Mensajes',  href: '/chat',        Icon: MessageSquare, requiresAuth: true },
     { id: 'profile', label: session ? 'Mi perfil' : 'Registrarse', href: session ? '/profile/me' : '/register', Icon: session ? User : LogIn },
   ];
 
@@ -37,8 +38,9 @@ export function Sidebar({ compact, session }) {
       <div className="flex flex-col gap-6">
         <Logo compact={compact} />
         <nav className="flex flex-col gap-2">
-          {NAV.map(({ id, label, href, Icon }) => {
-            const isActive = pathname === href || (id === 'profile' && pathname.startsWith('/profile'));
+          {NAV.map(({ id, label, href, Icon, requiresAuth }) => {
+            if (requiresAuth && !session) return null;
+            const isActive = pathname === href || (id === 'profile' && pathname.startsWith('/profile')) || (id === 'chat' && pathname.startsWith('/chat'));
             return (
               <Link
                 key={id}
@@ -46,7 +48,7 @@ export function Sidebar({ compact, session }) {
                 className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${isActive ? 'text-tiktok-red' : 'text-tiktok-text hover:bg-tiktok-dark-hover'}`}
                 title={compact ? label : ''}
               >
-                <Icon className={`w-7 h-7 flex-shrink-0 transition-transform group-hover:scale-105 ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                <Icon className={`w-7 h-7 flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
                 {!compact && <span className={`font-semibold text-lg hidden lg:block ${isActive ? 'text-tiktok-red' : ''}`}>{label}</span>}
               </Link>
             );
@@ -54,7 +56,7 @@ export function Sidebar({ compact, session }) {
         </nav>
 
         <div className="px-2 w-full mt-4">
-          <Link href={session ? "/upload" : "/login"} className="flex items-center justify-center gap-2 bg-tiktok-red hover:bg-[#e0254b] text-white p-3 rounded-xl transition-colors font-bold w-full">
+          <Link href={session ? "/upload" : "/login"} className="flex items-center justify-center gap-2 bg-tiktok-red hover:bg-[#e0254b] active:scale-95 text-white p-3 rounded-xl transition-all font-bold w-full hover:scale-105 hover:shadow-lg hover:shadow-tiktok-red/20">
             <Plus className="w-6 h-6" strokeWidth={3} />
             <span className="hidden lg:block">Subir</span>
           </Link>
@@ -70,17 +72,19 @@ export function BottomNav({ session }) {
   const pathname = usePathname();
 
   const NAV = [
-    { id: 'home',    label: 'Inicio',  href: '/', Icon: Home },
-    { id: 'explore', label: 'Explorar', href: '/explore', Icon: Compass },
-    { id: 'upload',  label: 'Subir', href: session ? '/upload' : '/login', Icon: Plus, isCenter: true },
-    { id: 'profile', label: session ? 'Perfil' : 'Registro', href: session ? '/profile/me' : '/register', Icon: session ? User : LogIn },
+    { id: 'home',    label: 'Inicio',   href: '/',            Icon: Home },
+    { id: 'explore', label: 'Explorar', href: '/explore',     Icon: Compass },
+    { id: 'upload',  label: 'Subir',    href: session ? '/upload' : '/login', Icon: Plus, isCenter: true },
+    { id: 'chat',    label: 'Chat',     href: '/chat',        Icon: MessageSquare, requiresAuth: true },
+    { id: 'profile', label: session ? 'Perfil' : 'Registro',  href: session ? '/profile/me' : '/register', Icon: session ? User : LogIn },
   ];
 
   return (
     <nav className="flex justify-around items-center h-16 w-full max-w-md mx-auto">
-      {NAV.map(({ id, label, href, Icon, isCenter }) => {
-        const isActive = pathname === href || (id === 'profile' && pathname.startsWith('/profile'));
-        
+      {NAV.map(({ id, label, href, Icon, isCenter, requiresAuth }) => {
+        if (requiresAuth && !session) return null;
+        const isActive = pathname === href || (id === 'profile' && pathname.startsWith('/profile')) || (id === 'chat' && pathname.startsWith('/chat'));
+
         if (isCenter) {
           return (
             <Link key={id} href={href} className="flex flex-col items-center justify-center h-full px-2 group">
@@ -95,7 +99,7 @@ export function BottomNav({ session }) {
           <Link
             key={id}
             href={href}
-            className={`flex flex-col items-center justify-center h-full px-4 gap-1 transition-all duration-200 hover:scale-110 active:scale-95 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            className={`flex flex-col items-center justify-center h-full px-3 gap-1 transition-all duration-200 hover:scale-110 active:scale-95 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
           >
             <Icon className={`w-6 h-6 transition-transform ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
             <span className={`text-[10px] font-medium transition-all ${isActive ? 'font-bold' : ''}`}>{label}</span>

@@ -193,3 +193,73 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Permisos: permite a cualquier usuario (incluso anónimo) llamar a estas funciones.
 GRANT EXECUTE ON FUNCTION public.increment_view(UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.increment_share(UUID) TO anon, authenticated;
+
+-- =============================================
+-- TABLA: blocks
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.blocks (
+  blocker_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  blocked_id  UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  created_at  TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  PRIMARY KEY (blocker_id, blocked_id)
+);
+
+ALTER TABLE public.blocks ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can see their own blocks." ON public.blocks;
+CREATE POLICY "Users can see their own blocks." ON public.blocks FOR SELECT USING (auth.uid() = blocker_id);
+DROP POLICY IF EXISTS "Users can block others." ON public.blocks;
+CREATE POLICY "Users can block others." ON public.blocks FOR INSERT WITH CHECK (auth.uid() = blocker_id);
+DROP POLICY IF EXISTS "Users can unblock others." ON public.blocks;
+CREATE POLICY "Users can unblock others." ON public.blocks FOR DELETE USING (auth.uid() = blocker_id);
+
+-- =============================================
+-- TABLA: messages
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.messages (
+  id          UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  sender_id   UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  content     TEXT NOT NULL,
+  read        BOOLEAN DEFAULT false,
+  created_at  TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can see their own messages." ON public.messages;
+CREATE POLICY "Users can see their own messages." ON public.messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+DROP POLICY IF EXISTS "Users can send messages." ON public.messages;
+CREATE POLICY "Users can send messages." ON public.messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
+DROP POLICY IF EXISTS "Users can mark messages as read." ON public.messages;
+CREATE POLICY "Users can mark messages as read." ON public.messages FOR UPDATE USING (auth.uid() = receiver_id);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+
+-- RPC: get conversations list
+CREATE OR REPLACE FUNCTION public.get_conversations(user_id UUID)
+RETURNS TABLE (
+  other_user_id UUID,
+  last_message TEXT,
+  last_message_at TIMESTAMP WITH TIME ZONE,
+  unread_count BIGINT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    CASE WHEN m.sender_id = user_id THEN m.receiver_id ELSE m.sender_id END AS other_user_id,
+    (SELECT content FROM public.messages sub
+     WHERE (sub.sender_id = user_id AND sub.receiver_id = CASE WHEN m.sender_id = user_id THEN m.receiver_id ELSE m.sender_id END)
+        OR (sub.sender_id = CASE WHEN m.sender_id = user_id THEN m.receiver_id ELSE m.sender_id END AND sub.receiver_id = user_id)
+     ORDER BY sub.created_at DESC LIMIT 1) AS last_message,
+    MAX(m.created_at) AS last_message_at,
+    COUNT(CASE WHEN m.receiver_id = user_id AND m.read = false THEN 1 END) AS unread_count
+  FROM public.messages m
+  WHERE m.sender_id = user_id OR m.receiver_id = user_id
+  GROUP BY other_user_id
+  ORDER BY last_message_at DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_conversations(UUID) TO authenticated;
+

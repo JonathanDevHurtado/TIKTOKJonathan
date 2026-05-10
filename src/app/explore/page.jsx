@@ -451,14 +451,14 @@ export default function Explore() {
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
               <div className="flex items-center gap-3 mb-5">
                 <Sparkles className="w-5 h-5 text-tiktok-red" />
-                <h2 className="text-xl font-black tracking-tight">Creadores</h2>
+                <h2 className="text-xl font-black tracking-tight">Usuarios nuevos</h2>
               </div>
               {defaultUsers.length > 0 ? (
                 <div className={`rounded-2xl border overflow-hidden divide-y transition-colors duration-300 ${theme === 'dark' ? 'border-white/5 divide-white/5' : 'border-black/5 divide-black/5'}`}>
                   {defaultUsers.map((u, i) => <UserRow key={u.id} user={u} idx={i} />)}
                 </div>
               ) : (
-                <div className="text-center py-10 opacity-30 text-sm">Sin creadores sugeridos</div>
+                <div className="text-center py-10 opacity-30 text-sm">Sin usuarios sugeridos</div>
               )}
             </section>
           </>

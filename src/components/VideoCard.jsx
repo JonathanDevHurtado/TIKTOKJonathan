@@ -92,8 +92,16 @@ export default function VideoCard({ video, isActive }) {
       const rect = e.currentTarget.getBoundingClientRect();
       setHeartPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
       setShowHeart(true); 
-      setLiked(true);
       setTimeout(() => setShowHeart(false), 900);
+      
+      if (!liked && session) {
+        setLiked(true);
+        setLikesCount(prev => prev + 1);
+        supabase.from('likes').insert({ video_id: video.id, user_id: session.user.id })
+          .then(({ error }) => {
+            if (error) alert("Error al guardar el like: " + error.message);
+          });
+      }
     }
   };
 
@@ -109,16 +117,19 @@ export default function VideoCard({ video, isActive }) {
     setTimeout(() => setLikeAnim(false), 400);
 
     if (newLikedState) {
-      await supabase.from('likes').insert({ video_id: video.id, user_id: session.user.id });
+      const { error } = await supabase.from('likes').insert({ video_id: video.id, user_id: session.user.id });
+      if (error) alert("Error al guardar el like: " + error.message);
     } else {
-      await supabase.from('likes').delete().match({ video_id: video.id, user_id: session.user.id });
+      const { error } = await supabase.from('likes').delete().match({ video_id: video.id, user_id: session.user.id });
+      if (error) alert("Error al quitar el like: " + error.message);
     }
   };
 
   const openComments = async (e) => {
     e.stopPropagation();
     setShowComments(true);
-    const { data } = await supabase.from('comments').select('*, profiles(username, avatar_url)').eq('video_id', video.id).order('created_at', { ascending: true });
+    const { data, error } = await supabase.from('comments').select('*, profiles(username, avatar_url)').eq('video_id', video.id).order('created_at', { ascending: true });
+    if (error) alert("Error cargando comentarios: " + error.message);
     if (data) setComments(data);
   };
 
@@ -133,7 +144,12 @@ export default function VideoCard({ video, isActive }) {
       content: newComment.trim()
     }).select('*, profiles(username, avatar_url)').single();
 
-    if (!error && data) {
+    if (error) {
+      alert("Error al publicar comentario: " + error.message);
+      return;
+    }
+
+    if (data) {
       setComments([...comments, data]);
       setNewComment('');
       setCommentsCount(prev => prev + 1);
@@ -188,10 +204,6 @@ export default function VideoCard({ video, isActive }) {
           <button className="text-tiktok-cyan font-bold text-sm">Seguir</button>
         </div>
         <p className="text-sm text-white drop-shadow-md line-clamp-3">{description}</p>
-        <div className="flex items-center gap-2 text-white mt-1">
-          <Music className="w-4 h-4 animate-spin-slow" />
-          <span className="text-sm drop-shadow-md whitespace-nowrap overflow-hidden text-ellipsis w-48 marquee">{song}</span>
-        </div>
       </div>
 
       <div className="absolute bottom-6 right-4 flex flex-col gap-4 z-20" onClick={e => e.stopPropagation()}>
@@ -215,10 +227,6 @@ export default function VideoCard({ video, isActive }) {
         <ActionBtn icon={MessageCircle} filled={true} label={formatNum(commentsCount)} onClick={openComments} />
         <ActionBtn icon={Bookmark} filled={saved} active={saved} label={formatNum(savesCount)} onClick={e => { e.stopPropagation(); setSaved(s => !s); }} />
         <ActionBtn icon={Share2} filled={true} label={formatNum(sharesCount)} />
-        
-        <div className="w-12 h-12 mt-2 rounded-full bg-[#1e1e1e] border-8 border-[#2e2e2e] flex items-center justify-center animate-spin-slow overflow-hidden">
-          <img src={avatarUrl} alt="Audio" className="w-full h-full object-cover" />
-        </div>
       </div>
 
       {/* Modal de Comentarios superpuesto */}

@@ -39,6 +39,7 @@ export default function VideoCard({ video, isActive }) {
   const [progress, setProgress]   = useState(0);
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(1);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const togglePiP = async (e) => {
     e.stopPropagation();
@@ -90,6 +91,11 @@ export default function VideoCard({ video, isActive }) {
       if (session?.user) {
         const { data } = await supabase.from('likes').select('id').eq('video_id', video.id).eq('user_id', session.user.id).single();
         if (data) setLiked(true);
+
+        if (video.user_id) {
+          const { data: followData } = await supabase.from('followers').select('follower_id').eq('follower_id', session.user.id).eq('following_id', video.user_id).single();
+          if (followData) setIsFollowing(true);
+        }
       }
     };
     fetchStats();
@@ -142,6 +148,22 @@ export default function VideoCard({ video, isActive }) {
     } else {
       const { error } = await supabase.from('likes').delete().match({ video_id: video.id, user_id: session.user.id });
       if (error) alert("Error al quitar el like: " + error.message);
+    }
+  };
+
+  const handleFollow = async (e) => {
+    e.stopPropagation();
+    if (!session) return alert("Debes iniciar sesión para seguir a un usuario");
+    if (!video.user_id) return alert("Error: No se puede identificar al autor del video.");
+
+    if (isFollowing) {
+      setIsFollowing(false);
+      const { error } = await supabase.from('followers').delete().match({ follower_id: session.user.id, following_id: video.user_id });
+      if (error) alert("Error al dejar de seguir: " + error.message);
+    } else {
+      setIsFollowing(true);
+      const { error } = await supabase.from('followers').insert({ follower_id: session.user.id, following_id: video.user_id });
+      if (error) alert("Error al seguir: " + error.message);
     }
   };
 
@@ -253,23 +275,34 @@ export default function VideoCard({ video, isActive }) {
         />
       </div>
 
-      <div className="absolute bottom-0 left-0 p-4 pb-6 w-3/4 flex flex-col gap-2 z-20 bg-gradient-to-t from-black/80 to-transparent">
-        <div className="flex items-center gap-2 mb-1" onClick={e => e.stopPropagation()}>
+      <div className="absolute bottom-0 left-0 p-4 pb-28 md:pb-6 w-3/4 flex flex-col gap-2 z-20 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
+        <div className="flex items-center gap-2 mb-1 pointer-events-auto" onClick={e => e.stopPropagation()}>
           <Link href={`/profile/${username}`} className="font-bold text-white drop-shadow-md hover:underline">@{username}</Link>
-          <span className="text-white text-xs">·</span>
-          <button className="text-tiktok-cyan font-bold text-sm">Seguir</button>
+          {session?.user?.id !== video.user_id && (
+            <>
+              <span className="text-white text-xs">·</span>
+              <button onClick={handleFollow} className={`font-bold text-sm ${isFollowing ? 'text-white' : 'text-tiktok-cyan'}`}>
+                {isFollowing ? 'Siguiendo' : 'Seguir'}
+              </button>
+            </>
+          )}
         </div>
-        <p className="text-sm text-white drop-shadow-md line-clamp-3">{description}</p>
+        <p className="text-sm text-white drop-shadow-md line-clamp-3 pointer-events-auto">{description}</p>
       </div>
 
-      <div className="absolute bottom-6 right-4 flex flex-col gap-4 z-20" onClick={e => e.stopPropagation()}>
+      <div className="absolute bottom-6 right-4 flex flex-col gap-4 z-20 pointer-events-auto" onClick={e => e.stopPropagation()}>
         <div className="relative mb-2">
           <Link href={`/profile/${username}`}>
             <img src={avatarUrl} alt={username} className="w-12 h-12 rounded-full border-2 border-white object-cover" />
           </Link>
-          <button className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-tiktok-red text-white rounded-full w-5 h-5 flex items-center justify-center text-lg font-bold border border-white">
-            +
-          </button>
+          {!isFollowing && session?.user?.id !== video.user_id && (
+            <button 
+              onClick={handleFollow}
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-tiktok-red text-white rounded-full w-5 h-5 flex items-center justify-center text-lg font-bold border border-white"
+            >
+              +
+            </button>
+          )}
         </div>
         
         <ActionBtn
@@ -287,8 +320,11 @@ export default function VideoCard({ video, isActive }) {
 
       {/* Modal de Comentarios superpuesto */}
       {showComments && (
-        <div className="absolute inset-0 bg-black/60 z-50 flex flex-col justify-end md:flex-row md:justify-end" onClick={e => e.stopPropagation()}>
-          <div className="bg-[#121212] w-full h-[70%] md:h-full md:w-80 rounded-t-2xl md:rounded-none md:border-l md:border-tiktok-dark-hover flex flex-col animate-slide-up">
+        <div className="fixed inset-0 z-50 flex flex-col justify-end md:flex-row md:justify-end" onClick={e => e.stopPropagation()}>
+          {/* Fondo oscuro en móvil, invisible en PC para no tapar el video central */}
+          <div className="absolute inset-0 bg-black/60 md:bg-transparent" onClick={() => setShowComments(false)}></div>
+          
+          <div className="relative bg-[#121212] w-full h-[70%] md:h-screen md:w-[400px] rounded-t-2xl md:rounded-none md:border-l md:border-tiktok-dark-hover flex flex-col animate-slide-up shadow-2xl z-10">
             
             <div className="flex justify-between items-center p-4 border-b border-tiktok-dark-hover">
               <span className="font-bold text-white">{commentsCount} comentarios</span>

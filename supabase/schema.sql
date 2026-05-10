@@ -332,6 +332,7 @@ ALTER TABLE public.group_messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Group members see group" ON public.chat_groups FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.group_members WHERE group_id = id AND user_id = auth.uid())
 );
+CREATE POLICY "Owner sees group" ON public.chat_groups FOR SELECT USING (auth.uid() = owner_id);
 CREATE POLICY "Authenticated can create groups" ON public.chat_groups FOR INSERT WITH CHECK (auth.uid() = owner_id);
 CREATE POLICY "Owner can update group" ON public.chat_groups FOR UPDATE USING (auth.uid() = owner_id);
 CREATE POLICY "Owner can delete group" ON public.chat_groups FOR DELETE USING (auth.uid() = owner_id);

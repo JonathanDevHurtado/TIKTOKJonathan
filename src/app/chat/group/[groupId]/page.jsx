@@ -19,14 +19,7 @@ export default function GroupChatPage() {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [showEmojis, setShowEmojis] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-  
-  // Media upload state
-  const [mediaFile, setMediaFile] = useState(null);
-  const [mediaPreview, setMediaPreview] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
   const avatarInputRef = useRef(null);
 
   // Group settings state
@@ -42,8 +35,6 @@ export default function GroupChatPage() {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const isDark = theme === 'dark';
-
-  const EMOJIS = ['😂','❤️','🥺','🔥','😍','😊','🥰','✨','👍','🙏','😭','👀','🎉','💯','😎'];
 
   useEffect(() => {
     if (!session) { router.push('/login'); return; }
@@ -117,43 +108,16 @@ export default function GroupChatPage() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, mediaPreview]);
 
-  // Click outside to close menus
   useEffect(() => {
-    const handleClick = () => { setActiveMenu(null); setShowEmojis(false); };
+    const handleClick = () => { setActiveMenu(null); };
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) return alert("Máximo 10MB");
-    setMediaFile(file);
-    setMediaPreview({ url: URL.createObjectURL(file), type: file.type.startsWith('video/') ? 'video' : 'image' });
-  };
-
-  const clearMedia = () => {
-    setMediaFile(null); setMediaPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
   const sendMessage = async (e) => {
     e?.preventDefault();
-    if ((!content.trim() && !mediaFile) || sending || uploading || !session) return;
+    if (!content.trim() || sending || !session) return;
     setSending(true);
-
-    let mediaUrl = null; let mediaType = null;
-    if (mediaFile) {
-      setUploading(true);
-      const fileExt = mediaFile.name.split('.').pop();
-      const filePath = `groups/${groupId}/${Date.now()}.${fileExt}`;
-      const { error } = await supabase.storage.from('chat-media').upload(filePath, mediaFile);
-      if (!error) {
-        mediaUrl = supabase.storage.from('chat-media').getPublicUrl(filePath).data.publicUrl;
-        mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
-      }
-      setUploading(false); clearMedia();
-    }
 
     const text = content.trim(); setContent(''); inputRef.current?.focus();
 
@@ -163,10 +127,10 @@ export default function GroupChatPage() {
     } else {
       const optimisticId = Date.now().toString();
       const optimisticMsg = {
-        id: optimisticId, group_id: groupId, sender_id: session.user.id, content: text, media_url: mediaUrl, media_type: mediaType, created_at: new Date().toISOString(), optimistic: true, profiles: { username: session.user.user_metadata?.username, avatar_url: session.user.user_metadata?.avatar_url }
+        id: optimisticId, group_id: groupId, sender_id: session.user.id, content: text, created_at: new Date().toISOString(), optimistic: true, profiles: { username: session.user.user_metadata?.username, avatar_url: session.user.user_metadata?.avatar_url }
       };
       setMessages(prev => [...prev, optimisticMsg]);
-      const { data, error } = await supabase.from('group_messages').insert({ group_id: groupId, sender_id: session.user.id, content: text, media_url: mediaUrl, media_type: mediaType }).select('*, profiles:sender_id(username, avatar_url)').single();
+      const { data, error } = await supabase.from('group_messages').insert({ group_id: groupId, sender_id: session.user.id, content: text }).select('*, profiles:sender_id(username, avatar_url)').single();
       if (!error && data) setMessages(prev => prev.map(m => m.id === optimisticId ? data : m));
       else setMessages(prev => prev.filter(m => m.id !== optimisticId));
     }
@@ -264,7 +228,7 @@ export default function GroupChatPage() {
             const showSender = !isMe && (!prev || prev.sender_id !== msg.sender_id);
             
             return (
-              <div key={msg.id} className={`flex items-end gap-2 group/msg ${isMe ? 'justify-end flex-row-reverse' : 'justify-start'}`}>
+              <div key={msg.id} className={`flex items-end gap-2 group/msg ${isMe ? 'justify-end' : 'justify-start'}`}>
                 {!isMe && (
                   showSender ? (
                     <img src={msg.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.profiles?.username}`} className="w-7 h-7 rounded-full shrink-0 mb-1" alt="avatar" />
@@ -294,7 +258,7 @@ export default function GroupChatPage() {
                     <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === msg.id ? null : msg.id); }} className={`p-1 rounded-full ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}><MoreVertical className="w-4 h-4 opacity-50" /></button>
                     {activeMenu === msg.id && (
                       <div className={`absolute bottom-6 right-0 z-50 w-32 rounded-xl shadow-xl border overflow-hidden animate-in zoom-in-95 ${isDark ? 'bg-[#111] border-white/10' : 'bg-white border-black/10'}`}>
-                        {!msg.media_url && <button onClick={() => { setEditingMsg(msg); setContent(msg.content); setActiveMenu(null); inputRef.current?.focus(); }} className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}><Edit2 className="w-3.5 h-3.5" /> Editar</button>}
+                        <button onClick={() => { setEditingMsg(msg); setContent(msg.content); setActiveMenu(null); inputRef.current?.focus(); }} className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}><Edit2 className="w-3.5 h-3.5" /> Editar</button>
                         <button onClick={() => { deleteMessage(msg.id); setActiveMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}><Trash2 className="w-3.5 h-3.5" /> Eliminar</button>
                       </div>
                     )}
@@ -308,27 +272,16 @@ export default function GroupChatPage() {
 
         {/* Input area */}
         <form onSubmit={sendMessage} className={`shrink-0 flex items-end gap-2 px-4 py-3 border-t z-20 ${isDark ? 'border-white/5 bg-[#0a0a0a]' : 'border-black/5 bg-white'}`}>
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*,video/*,.gif" className="hidden" />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className={`p-2.5 rounded-full transition-all hover:scale-110 active:scale-95 shrink-0 mb-1 ${isDark ? 'text-white/50 hover:bg-white/10' : 'text-black/50 hover:bg-black/5'}`}><Paperclip className="w-5 h-5" /></button>
-          
           <div className="relative flex-1">
             <textarea
               ref={inputRef} value={content} onChange={e => setContent(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }}
               placeholder="Enviar a grupo..."
-              className={`w-full px-4 py-3 pr-10 rounded-2xl text-sm outline-none transition-all border focus:ring-2 focus:ring-tiktok-red/30 focus:border-tiktok-red resize-none min-h-[44px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30' : 'bg-gray-100 border-transparent text-black placeholder:text-black/40 focus:bg-white'}`}
+              className={`w-full px-4 py-3 rounded-2xl text-sm outline-none transition-all border focus:ring-2 focus:ring-tiktok-red/30 focus:border-tiktok-red resize-none min-h-[44px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30' : 'bg-gray-100 border-transparent text-black placeholder:text-black/40 focus:bg-white'}`}
               rows={1} style={{ height: content ? 'auto' : '44px' }}
             />
-            <div className="absolute right-2 bottom-2 z-50">
-              <button type="button" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setShowEmojis(!showEmojis); }} className={`p-1.5 rounded-full transition-colors ${isDark ? 'text-white/40 hover:text-white' : 'text-black/40 hover:text-black'}`}><Smile className="w-5 h-5" /></button>
-              {showEmojis && (
-                <div className={`absolute bottom-10 right-0 p-2 rounded-2xl shadow-2xl border w-64 grid grid-cols-5 gap-1 animate-in zoom-in-95 ${isDark ? 'bg-[#111] border-white/10' : 'bg-white border-black/10'}`} onPointerDown={e => e.stopPropagation()}>
-                  {EMOJIS.map(e => <button key={e} type="button" onPointerDown={(evt) => { evt.preventDefault(); evt.stopPropagation(); setContent(prev => prev + e); setShowEmojis(false); setTimeout(() => inputRef.current?.focus(), 10); }} className={`text-2xl p-1 rounded-xl hover:scale-125 transition-transform ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}>{e}</button>)}
-                </div>
-              )}
-            </div>
           </div>
-          <button type="submit" disabled={(!content.trim() && !mediaFile) || sending || uploading} className="w-11 h-11 mb-0.5 shrink-0 flex items-center justify-center bg-tiktok-red rounded-full text-white disabled:opacity-40 hover:scale-110 active:scale-90 transition-all shadow-md"><Send className="w-5 h-5" /></button>
+          <button type="submit" disabled={!content.trim() || sending} className="w-11 h-11 mb-0.5 shrink-0 flex items-center justify-center bg-tiktok-red rounded-full text-white disabled:opacity-40 hover:scale-110 active:scale-90 transition-all shadow-md"><Send className="w-5 h-5" /></button>
         </form>
       </div>
 

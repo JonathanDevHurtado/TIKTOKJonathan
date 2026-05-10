@@ -34,8 +34,6 @@ export default function ChatPage() {
   const inputRef = useRef(null);
   const isDark = theme === 'dark';
 
-  const EMOJIS = ['😂','❤️','🥺','🔥','😍','😊','🥰','✨','👍','🙏','😭','👀','🎉','💯','😎'];
-
   useEffect(() => {
     if (!session) { router.push('/login'); return; }
 
@@ -88,7 +86,7 @@ export default function ChatPage() {
 
   // Click outside to close menus
   useEffect(() => {
-    const handleClick = () => { setActiveMenu(null); setShowEmojis(false); };
+    const handleClick = () => { setActiveMenu(null); };
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, []);
@@ -160,8 +158,6 @@ export default function ChatPage() {
         sender_id: session.user.id,
         receiver_id: userId,
         content: text,
-        media_url: mediaUrl,
-        media_type: mediaType,
         created_at: new Date().toISOString(),
         read: false,
         optimistic: true
@@ -171,14 +167,12 @@ export default function ChatPage() {
       const { data, error } = await supabase.from('messages').insert({
         sender_id: session.user.id,
         receiver_id: userId,
-        content: text,
-        media_url: mediaUrl,
-        media_type: mediaType
+        content: text
       }).select().single();
 
       if (!error && data) {
         setMessages(prev => prev.map(m => m.id === optimisticId ? data : m));
-        supabase.from('notifications').insert({ user_id: userId, actor_id: session.user.id, type: 'message', message: text || (mediaUrl ? '[Archivo adjunto]' : '') }).then();
+        supabase.from('notifications').insert({ user_id: userId, actor_id: session.user.id, type: 'message', message: text }).then();
       } else {
         setMessages(prev => prev.filter(m => m.id !== optimisticId));
       }
@@ -258,7 +252,7 @@ export default function ChatPage() {
                     {formatTime(msg.created_at)}
                   </p>
                 )}
-                <div className={`flex items-end gap-2 group/msg ${isMe ? 'justify-end flex-row-reverse' : 'justify-start'}`}>
+                <div className={`flex items-end gap-2 group/msg ${isMe ? 'justify-end' : 'justify-start'}`}>
                   
                   {/* Message Bubble */}
                   <div className={`relative max-w-[75%] rounded-2xl flex flex-col shadow-sm transition-all ${msg.optimistic ? 'opacity-60' : 'opacity-100'} ${
@@ -330,44 +324,11 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Media Preview */}
-      {mediaPreview && (
-        <div className={`px-4 py-3 flex items-start gap-3 border-t ${isDark ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
-          <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-black/20">
-            {mediaPreview.type === 'video' ? (
-              <video src={mediaPreview.url} className="w-full h-full object-cover" />
-            ) : (
-              <img src={mediaPreview.url} className="w-full h-full object-cover" alt="preview" />
-            )}
-            <button onClick={clearMedia} className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 text-white shadow-lg transform hover:scale-110">
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="flex-1 text-xs opacity-50 mt-1">Archivo adjunto ({mediaFile.name})</div>
-        </div>
-      )}
-
       {/* Input */}
       <form
         onSubmit={sendMessage}
         className={`shrink-0 flex items-end gap-2 px-4 py-3 border-t z-20 ${isDark ? 'border-white/5 bg-[#0a0a0a]' : 'border-black/5 bg-white'}`}
       >
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          onChange={handleFileChange} 
-          accept="image/*,video/*,.gif" 
-          className="hidden" 
-        />
-        
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className={`p-2.5 rounded-full transition-all hover:scale-110 active:scale-95 shrink-0 mb-1 ${isDark ? 'text-white/50 hover:bg-white/10 hover:text-white' : 'text-black/50 hover:bg-black/5 hover:text-black'}`}
-        >
-          <Paperclip className="w-5 h-5" />
-        </button>
-
         <div className="relative flex-1">
           <textarea
             ref={inputRef}
@@ -380,48 +341,18 @@ export default function ChatPage() {
               }
             }}
             placeholder="Escribe un mensaje..."
-            className={`w-full px-4 py-3 pr-10 rounded-2xl text-sm outline-none transition-all border focus:ring-2 focus:ring-tiktok-red/30 focus:border-tiktok-red resize-none max-h-32 min-h-[44px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30' : 'bg-gray-100 border-transparent text-black placeholder:text-black/40 focus:bg-white'}`}
+            className={`w-full px-4 py-3 rounded-2xl text-sm outline-none transition-all border focus:ring-2 focus:ring-tiktok-red/30 focus:border-tiktok-red resize-none max-h-32 min-h-[44px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30' : 'bg-gray-100 border-transparent text-black placeholder:text-black/40 focus:bg-white'}`}
             rows={1}
             style={{ height: content ? 'auto' : '44px' }}
           />
-          
-          {/* Emojis Toggle */}
-          <div className="absolute right-2 bottom-2 z-50">
-            <button
-              type="button"
-              onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setShowEmojis(!showEmojis); }}
-              className={`p-1.5 rounded-full transition-colors ${isDark ? 'text-white/40 hover:text-white' : 'text-black/40 hover:text-black'}`}
-            >
-              <Smile className="w-5 h-5" />
-            </button>
-
-            {/* Emoji Picker Popover */}
-            {showEmojis && (
-              <div 
-                className={`absolute bottom-10 right-0 p-2 rounded-2xl shadow-2xl border w-64 grid grid-cols-5 gap-1 animate-in zoom-in-95 ${isDark ? 'bg-[#111] border-white/10' : 'bg-white border-black/10'}`}
-                onPointerDown={e => e.stopPropagation()}
-              >
-                {EMOJIS.map(e => (
-                  <button 
-                    key={e} 
-                    type="button"
-                    onPointerDown={(evt) => { evt.preventDefault(); evt.stopPropagation(); setContent(prev => prev + e); setShowEmojis(false); setTimeout(() => inputRef.current?.focus(), 10); }}
-                    className={`text-2xl p-1 rounded-xl hover:scale-125 transition-transform ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
-                  >
-                    {e}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         <button
           type="submit"
-          disabled={(!content.trim() && !mediaFile) || sending || uploading}
+          disabled={!content.trim() || sending}
           className="w-11 h-11 mb-0.5 shrink-0 flex items-center justify-center bg-tiktok-red rounded-full text-white disabled:opacity-40 hover:scale-110 active:scale-90 transition-all shadow-md hover:shadow-tiktok-red/30"
         >
-          {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+          <Send className="w-5 h-5" />
         </button>
       </form>
     </div>

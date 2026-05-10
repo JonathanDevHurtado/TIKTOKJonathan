@@ -1,9 +1,10 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../utils/supabase';
-import { Search, Users, Film, ArrowRight, Play, Hash, X, Sparkles, TrendingUp, ChevronRight } from 'lucide-react';
+import { Search, Users, Film, ArrowRight, Play, Hash, X, Sparkles, TrendingUp, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
+import { useRouter } from 'next/navigation';
 
 const CATEGORY_COLORS = [
   { from: 'from-violet-600', to: 'to-purple-800', light: 'from-violet-100', lightTo: 'to-purple-200', emoji: '🎮' },
@@ -20,8 +21,17 @@ const CATEGORY_COLORS = [
   { from: 'from-teal-400', to: 'to-emerald-700', light: 'from-teal-100', lightTo: 'to-emerald-200', emoji: '📚' },
 ];
 
+function formatNum(n) {
+  if (!n) return '0';
+  const num = typeof n === 'string' ? parseFloat(n) : n;
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+}
+
 export default function Explore() {
   const { theme } = useTheme();
+  const router = useRouter();
   const [categories, setCategories] = useState([]);
   const [query, setQuery] = useState('');
   const [activeSearchTab, setActiveSearchTab] = useState('videos');
@@ -33,7 +43,56 @@ export default function Explore() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [categoryVideos, setCategoryVideos] = useState([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  
+  // Infinite scroll states
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const observerRef = useRef(null);
   const inputRef = useRef(null);
+
+  const loadMoreVideos = useCallback(async () => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    
+    // Load random videos for infinite scroll when in a category
+    if (activeCategory) {
+      const currentIds = categoryVideos.map(v => v.id);
+      let query = supabase.from('videos').select(`*, profiles(username, avatar_url)`);
+      if (currentIds.length > 0) {
+        // Just get any videos not in the current list to act as "random" infinite scroll
+        // No strict NOT IN due to URL length limits, we just use random ordering or offset
+        query = query.order('created_at', { ascending: false }).range(page * 20, (page + 1) * 20 - 1);
+      } else {
+        query = query.eq('category_id', activeCategory.id).order('created_at', { ascending: false }).limit(20);
+      }
+      
+      const { data } = await query;
+      
+      if (data && data.length > 0) {
+        setCategoryVideos(prev => {
+          // Filter duplicates just in case
+          const newVids = data.filter(d => !prev.find(p => p.id === d.id));
+          return [...prev, ...newVids];
+        });
+        setPage(p => p + 1);
+      } else {
+        setHasMore(false);
+      }
+    }
+    setLoading(false);
+  }, [activeCategory, categoryVideos, page, loading, hasMore]);
+
+  // Intersection Observer for infinite scroll
+  const lastElementRef = useCallback(node => {
+    if (loading) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMoreVideos();
+      }
+    });
+    if (node) observerRef.current.observe(node);
+  }, [loading, hasMore, loadMoreVideos]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -46,7 +105,7 @@ export default function Explore() {
         const { data, error } = await supabase
           .from('videos')
           .select(`*, profiles(username, avatar_url)`)
-          .order('created_at', { ascending: false })
+          .order('views', { ascending: false }) // Order by views for trending
           .limit(12);
         if (!error && data) trendData = data;
         setTrendingVideos(trendData);
@@ -102,10 +161,14 @@ export default function Explore() {
     if (activeCategory?.id === cat.id) {
       setActiveCategory(null);
       setCategoryVideos([]);
+      setPage(1);
+      setHasMore(true);
       return;
     }
     setActiveCategory(cat);
     setCategoryLoading(true);
+    setPage(1);
+    setHasMore(true);
     try {
       const { data } = await supabase
         .from('videos')
@@ -114,6 +177,10 @@ export default function Explore() {
         .order('created_at', { ascending: false })
         .limit(20);
       setCategoryVideos(data || []);
+      if (data && data.length < 20) {
+        // If we got less than 20, we don't have more strictly in this category,
+        // but loadMoreVideos will fetch randoms next time it fires
+      }
     } catch (err) {
       console.error("Error loading category videos:", err);
     } finally {
@@ -121,23 +188,41 @@ export default function Explore() {
     }
   };
 
-  const VideoCard = ({ video, idx = 0 }) => (
-    <Link
-      href={`/video/${video.id}`}
-      className="aspect-[9/16] relative group overflow-hidden rounded-xl shadow-md"
+  const handleVideoClick = async (video) => {
+    // Increment view optimistically
+    try {
+      await supabase.rpc('increment_view', { vid_id: video.id });
+    } catch (err) {
+      console.error(err);
+    }
+    router.push(`/video/${video.id}`);
+  };
+
+  const VideoCard = ({ video, idx = 0, innerRef }) => (
+    <div
+      ref={innerRef}
+      onClick={() => handleVideoClick(video)}
+      className="aspect-[9/16] relative group overflow-hidden rounded-xl shadow-md cursor-pointer"
       style={{ animationDelay: `${idx * 50}ms` }}
     >
       <video src={video.video_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" muted />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-100 transition-all duration-300 flex flex-col justify-end p-3">
         <p className="text-white text-xs font-bold truncate">@{video.profiles?.username}</p>
         {video.description && <p className="text-white/70 text-[10px] truncate mt-0.5">{video.description}</p>}
       </div>
+      
+      {/* View count indicator */}
+      <div className="absolute bottom-3 right-3 flex items-center gap-1 text-white/90 text-[10px] font-bold drop-shadow-md">
+        <Play className="w-3 h-3 fill-current" />
+        <span>{formatNum(video.views || 0)}</span>
+      </div>
+
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
         <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center scale-0 group-hover:scale-100 transition-transform duration-300">
           <Play className="text-white w-5 h-5 fill-current" />
         </div>
       </div>
-    </Link>
+    </div>
   );
 
   const UserRow = ({ user, idx = 0 }) => (
@@ -268,9 +353,11 @@ export default function Explore() {
           <>
             {/* TRENDING SECTION */}
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center gap-3 mb-5">
-                <TrendingUp className="w-5 h-5 text-tiktok-red" />
-                <h2 className="text-xl font-black tracking-tight">Tendencias</h2>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="w-5 h-5 text-tiktok-red" />
+                  <h2 className="text-xl font-black tracking-tight">Tendencias</h2>
+                </div>
               </div>
               {trendingVideos.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -314,7 +401,7 @@ export default function Explore() {
                 })}
               </div>
 
-              {/* Category Videos */}
+              {/* Category Videos (with Infinite Scroll) */}
               {activeCategory && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex items-center justify-between mb-4">
@@ -330,13 +417,25 @@ export default function Explore() {
                     </button>
                   </div>
 
-                  {categoryLoading ? (
+                  {categoryLoading && categoryVideos.length === 0 ? (
                     <div className="flex justify-center py-12">
                       <div className="animate-spin w-8 h-8 border-4 border-tiktok-red border-t-transparent rounded-full" />
                     </div>
                   ) : categoryVideos.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {categoryVideos.map((v, i) => <VideoCard key={v.id} video={v} idx={i} />)}
+                      {categoryVideos.map((v, i) => {
+                        if (i === categoryVideos.length - 1) {
+                          return <VideoCard innerRef={lastElementRef} key={v.id} video={v} idx={i % 20} />;
+                        } else {
+                          return <VideoCard key={v.id} video={v} idx={i % 20} />;
+                        }
+                      })}
+                      
+                      {loading && (
+                        <div className="col-span-2 sm:col-span-3 flex justify-center py-6">
+                           <div className="animate-spin w-6 h-6 border-2 border-tiktok-red border-t-transparent rounded-full" />
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className={`flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed gap-3 ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>

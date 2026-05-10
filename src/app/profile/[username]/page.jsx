@@ -25,6 +25,7 @@ export default function Profile() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockedByThem, setBlockedByThem] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     let targetUsername = username;
@@ -209,14 +210,14 @@ export default function Profile() {
 
       {/* Profile Info */}
       <div className="flex flex-col items-center p-4 md:p-8 animate-in fade-in duration-500">
-        <div className="relative mb-4 group cursor-pointer">
+        <div className="relative mb-4 group cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
           <img
             src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.username || 'user'}`}
             alt={profile?.username || 'avatar'}
             className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-tiktok-dark-hover object-cover shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:rotate-3"
           />
           {isOwner && (
-            <button onClick={() => setIsEditModalOpen(true)} className={`absolute bottom-0 right-0 p-2 rounded-full shadow-lg hover:scale-110 active:scale-90 transition-all border ${isDark ? 'bg-[#1e1e1e] border-white/10 text-white' : 'bg-white border-gray-100 text-black'}`}>
+            <button onClick={(e) => { e.stopPropagation(); setIsEditModalOpen(true); }} className={`absolute bottom-0 right-0 p-2 rounded-full shadow-lg hover:scale-110 active:scale-90 transition-all border ${isDark ? 'bg-[#1e1e1e] border-white/10 text-white' : 'bg-white border-gray-100 text-black'}`}>
               <Edit2 className="w-4 h-4" />
             </button>
           )}
@@ -342,6 +343,20 @@ export default function Profile() {
               <button onClick={() => setIsDeleteModalOpen(false)} className={`font-bold py-3 rounded-xl transition-colors ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'}`}>Cancelar</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {isLightboxOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsLightboxOpen(false)}>
+          <button className="absolute top-6 right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110">
+            <X className="w-8 h-8" />
+          </button>
+          <img
+            src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.username || 'user'}`}
+            alt={profile?.username || 'avatar'}
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-full shadow-2xl animate-in zoom-in-95 duration-500"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

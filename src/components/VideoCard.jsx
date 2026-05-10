@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play, X, Send, PictureInPicture, Plus, Eye } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play, X, Send, PictureInPicture, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
 import { useSession } from '../app/SessionProvider';
@@ -15,10 +15,7 @@ function formatNum(n) {
 
 function ActionBtn({ icon: Icon, label, active, onClick, pulse, filled, hideLabel }) {
   return (
-    <button
-      className="flex flex-col items-center gap-1 group"
-      onClick={onClick}
-    >
+    <button className="flex flex-col items-center gap-1 group" onClick={onClick}>
       <div className={`p-3 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] backdrop-blur-sm transition-all duration-300 ${pulse ? 'scale-125' : ''} ${active ? 'text-tiktok-red shadow-[0_0_15px_rgba(254,44,85,0.3)]' : 'text-[var(--text-primary)]'} group-hover:scale-110 group-active:scale-90 shadow-lg group-hover:shadow-xl`}>
         <Icon className={`w-7 h-7 ${filled ? 'fill-current' : ''} transition-all duration-300 ${active ? 'scale-110' : ''}`} strokeWidth={2.5} />
       </div>
@@ -30,24 +27,24 @@ function ActionBtn({ icon: Icon, label, active, onClick, pulse, filled, hideLabe
 export default function VideoCard({ video, isActive }) {
   const session = useSession();
   const videoRef = useRef(null);
-  const [liked, setLiked]     = useState(false);
-  const [saved, setSaved]     = useState(false);
+  const commentInputRef = useRef(null);
+  const isCommentFocused = useRef(false);
+
+  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [likeAnim, setLikeAnim] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
-  const [heartPos, setHeartPos]   = useState({ x: 0, y: 0 });
-  const [progress, setProgress]   = useState(0);
+  const [heartPos, setHeartPos] = useState({ x: 0, y: 0 });
+  const [progress, setProgress] = useState(0);
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(1);
   const [isFollowing, setIsFollowing] = useState(false);
-
   const [likesCount, setLikesCount] = useState(video.likes || 0);
   const [commentsCount, setCommentsCount] = useState(video.comments || 0);
   const [savesCount, setSavesCount] = useState(video.saves || 0);
   const [sharesCount, setSharesCount] = useState(video.shares || 0);
-  const [viewsCount, setViewsCount] = useState(video.views || 0);
-  const viewTracked = useRef(false); // prevents double-counting per mount
-  
+  const viewTracked = useRef(false);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -67,20 +64,15 @@ export default function VideoCard({ video, isActive }) {
   useEffect(() => {
     const fetchStats = async () => {
       if (!video.id) return;
-      
       const { count: lCount } = await supabase.from('likes').select('*', { count: 'exact', head: true }).eq('video_id', video.id);
       if (lCount !== null) setLikesCount(lCount);
-
       const { count: cCount } = await supabase.from('comments').select('*', { count: 'exact', head: true }).eq('video_id', video.id);
       if (cCount !== null) setCommentsCount(cCount);
-
       if (session?.user) {
         const { data } = await supabase.from('likes').select('id').eq('video_id', video.id).eq('user_id', session.user.id).single();
         if (data) setLiked(true);
-
         const { data: saveData } = await supabase.from('saves').select('id').eq('video_id', video.id).eq('user_id', session.user.id).single();
         if (saveData) setSaved(true);
-
         if (video.user_id) {
           const { data: followData } = await supabase.from('followers').select('follower_id').eq('follower_id', session.user.id).eq('following_id', video.user_id).single();
           if (followData) setIsFollowing(true);
@@ -96,30 +88,16 @@ export default function VideoCard({ video, isActive }) {
     if (isActive) {
       v.play().catch(() => {});
       setPlaying(true);
-
-      // Track view after 3 seconds of watching (once per component mount)
       if (!viewTracked.current && video.id) {
         const timer = setTimeout(async () => {
           viewTracked.current = true;
-          // Try RPC first, then fall back to direct column increment
           const { error: rpcError } = await supabase.rpc('increment_view', { vid_id: video.id });
           if (rpcError) {
-            // Fallback: read current views and increment
-            const { data: current } = await supabase
-              .from('videos')
-              .select('views')
-              .eq('id', video.id)
-              .single();
+            const { data: current } = await supabase.from('videos').select('views').eq('id', video.id).single();
             if (current !== null) {
               const newViews = (current?.views || 0) + 1;
-              await supabase
-                .from('videos')
-                .update({ views: newViews })
-                .eq('id', video.id);
-              setViewsCount(newViews);
+              await supabase.from('videos').update({ views: newViews }).eq('id', video.id);
             }
-          } else {
-            setViewsCount(prev => prev + 1);
           }
         }, 3000);
         return () => clearTimeout(timer);
@@ -132,24 +110,35 @@ export default function VideoCard({ video, isActive }) {
   }, [isActive, video.id]);
 
   const handleClick = (e) => {
+    if (isCommentFocused.current) return;
+    const target = e.target;
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'A' ||
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('form')
+    ) return;
+
     const v = videoRef.current;
     if (!v) return;
     if (v.paused) { v.play(); setPlaying(true); }
-    else          { v.pause(); setPlaying(false); }
-    
+    else { v.pause(); setPlaying(false); }
+
     if (e.detail === 2) {
       const rect = e.currentTarget.getBoundingClientRect();
       setHeartPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-      setShowHeart(true); 
+      setShowHeart(true);
       setTimeout(() => setShowHeart(false), 900);
-      
       if (!liked && session) {
         setLiked(true);
         setLikesCount(prev => prev + 1);
         supabase.from('likes').insert({ video_id: video.id, user_id: session.user.id })
-          .then(({ error }) => {
-            if (error && error.code !== '23505') alert("Error al guardar el like: " + error.message);
-          });
+          .then(({ error }) => { if (error && error.code !== '23505') console.error(error); });
       }
     }
   };
@@ -157,17 +146,17 @@ export default function VideoCard({ video, isActive }) {
   const handleLike = async (e) => {
     e.stopPropagation();
     if (!session) return showToast("Inicia sesión para dar Like");
-
     const newLikedState = !liked;
     setLiked(newLikedState);
     setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
-    
     setLikeAnim(true);
     setTimeout(() => setLikeAnim(false), 400);
-
     if (newLikedState) {
       const { error } = await supabase.from('likes').insert({ video_id: video.id, user_id: session.user.id });
       if (error && error.code !== '23505') console.error("Error liking:", error);
+      else if (video.user_id && video.user_id !== session.user.id) {
+        supabase.from('notifications').insert({ user_id: video.user_id, actor_id: session.user.id, type: 'like', video_id: video.id }).then();
+      }
     } else {
       await supabase.from('likes').delete().match({ video_id: video.id, user_id: session.user.id });
     }
@@ -177,51 +166,53 @@ export default function VideoCard({ video, isActive }) {
     e?.stopPropagation();
     if (!session) return showToast("Inicia sesión para seguir");
     if (session.user.id === video.user_id) return showToast("No puedes seguirte a ti mismo");
-
     const newFollowState = !isFollowing;
     setIsFollowing(newFollowState);
-
     if (newFollowState) {
-      const { error } = await supabase.from('followers').insert({ 
-        follower_id: session.user.id, 
-        following_id: video.user_id 
-      });
-      if (error && error.code !== '23505') {
-        console.error("Error following:", error);
-        setIsFollowing(false);
-      } else {
+      const { error } = await supabase.from('followers').insert({ follower_id: session.user.id, following_id: video.user_id });
+      if (error && error.code !== '23505') { console.error("Error following:", error); setIsFollowing(false); }
+      else {
         showToast("Siguiendo a @" + username);
+        supabase.from('notifications').insert({ user_id: video.user_id, actor_id: session.user.id, type: 'follow' }).then();
       }
     } else {
-      const { error } = await supabase.from('followers').delete().match({ 
-        follower_id: session.user.id, 
-        following_id: video.user_id 
-      });
-      if (error) {
-        console.error("Error unfollowing:", error);
-        setIsFollowing(true);
-      }
+      const { error } = await supabase.from('followers').delete().match({ follower_id: session.user.id, following_id: video.user_id });
+      if (error) { console.error("Error unfollowing:", error); setIsFollowing(true); }
     }
+  };
+
+  const handleOpenComments = async (e) => {
+    e.stopPropagation();
+    if (!session) return showToast("Inicia sesión para ver comentarios");
+    setShowComments(prev => {
+      if (!prev && video.id) {
+        supabase.from('comments').select('*, profiles(username, avatar_url)').eq('video_id', video.id).order('created_at', { ascending: false })
+          .then(({ data }) => { if (data) setComments(data); });
+      }
+      return !prev;
+    });
   };
 
   const postComment = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!session || !newComment.trim()) return;
     const { data, error } = await supabase.from('comments').insert({ video_id: video.id, user_id: session.user.id, content: newComment.trim() }).select('*, profiles(username, avatar_url)').single();
     if (!error && data) {
       setComments(prev => [data, ...prev]);
       setNewComment('');
       setCommentsCount(prev => prev + 1);
+      if (video.user_id && video.user_id !== session.user.id) {
+        supabase.from('notifications').insert({ user_id: video.user_id, actor_id: session.user.id, type: 'comment', video_id: video.id, message: data.content }).then();
+      }
     }
   };
 
   const handleSave = async (e) => {
     e.stopPropagation();
     if (!session) return showToast("Inicia sesión para guardar");
-
     const newSavedState = !saved;
     setSaved(newSavedState);
-
     if (newSavedState) {
       const { error } = await supabase.from('saves').insert({ video_id: video.id, user_id: session.user.id });
       if (error && error.code !== '23505') console.error("Error saving:", error);
@@ -234,7 +225,6 @@ export default function VideoCard({ video, isActive }) {
   const handleShare = async (e) => {
     e.stopPropagation();
     const link = `${window.location.origin}/video/${video.id}`;
-    
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(link);
@@ -250,7 +240,6 @@ export default function VideoCard({ video, isActive }) {
       setSharesCount(prev => prev + 1);
       await supabase.rpc('increment_share', { vid_id: video.id });
     } catch (err) {
-      console.error("Error sharing:", err);
       showToast("Error al copiar enlace");
     }
   };
@@ -267,7 +256,7 @@ export default function VideoCard({ video, isActive }) {
     <>
       <div className="flex justify-between items-center p-4 border-b border-[var(--border-primary)]">
         <span className="font-bold">{commentsCount} comentarios</span>
-        <button onClick={() => setShowComments(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+        <button onClick={(e) => { e.stopPropagation(); setShowComments(false); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -278,11 +267,7 @@ export default function VideoCard({ video, isActive }) {
         ) : (
           comments.map(c => (
             <div key={c.id} className="flex gap-3 animate-in fade-in duration-300">
-              <img 
-                src={c.profiles?.avatar_url || avatarUrl} 
-                className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] object-cover" 
-                alt="avatar"
-              />
+              <img src={c.profiles?.avatar_url || avatarUrl} className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] object-cover" alt="avatar" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-[var(--text-secondary)]">@{c.profiles?.username || 'usuario'}</p>
                 <p className="text-sm break-words">{c.content}</p>
@@ -292,15 +277,30 @@ export default function VideoCard({ video, isActive }) {
         )}
       </div>
 
-      <form onSubmit={postComment} className="p-4 border-t border-[var(--border-primary)] flex gap-2 bg-[var(--bg-primary)]">
-        <input 
-          type="text" 
+      <form
+        onSubmit={postComment}
+        className="p-4 border-t border-[var(--border-primary)] flex gap-2 bg-[var(--bg-primary)]"
+        onClick={e => e.stopPropagation()}
+      >
+        <input
+          ref={commentInputRef}
+          type="text"
           value={newComment}
           onChange={e => setNewComment(e.target.value)}
-          placeholder="Añadir comentario..." 
+          onFocus={() => { isCommentFocused.current = true; }}
+          onBlur={() => { isCommentFocused.current = false; }}
+          onClick={e => e.stopPropagation()}
+          onKeyDown={e => e.stopPropagation()}
+          placeholder="Añadir comentario..."
           className="flex-1 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-tiktok-red transition-all"
+          autoComplete="off"
         />
-        <button type="submit" disabled={!newComment.trim()} className="text-tiktok-red disabled:opacity-50 p-2 hover:scale-110 transition-transform">
+        <button
+          type="submit"
+          disabled={!newComment.trim()}
+          className="text-tiktok-red disabled:opacity-50 p-2 hover:scale-110 transition-transform"
+          onClick={e => e.stopPropagation()}
+        >
           <Send className="w-5 h-5" />
         </button>
       </form>
@@ -308,7 +308,7 @@ export default function VideoCard({ video, isActive }) {
   );
 
   return (
-    <div 
+    <div
       className={`relative flex flex-col md:flex-row h-full w-full bg-[var(--bg-primary)] overflow-hidden transition-all duration-500 ease-in-out
         ${showComments ? 'md:max-w-[1000px] md:h-[calc(100vh-4rem)] md:rounded-2xl shadow-2xl' : 'md:w-fit md:aspect-[9/16] md:h-[calc(100vh-2rem)] md:rounded-2xl'}`}
       onClick={handleClick}
@@ -317,8 +317,8 @@ export default function VideoCard({ video, isActive }) {
         <video
           ref={videoRef}
           src={videoUrl}
-          loop 
-          muted={muted} 
+          loop
+          muted={muted}
           playsInline
           className="w-full h-full object-contain"
           onTimeUpdate={() => {
@@ -326,35 +326,35 @@ export default function VideoCard({ video, isActive }) {
           }}
         />
 
-        <div className={`absolute inset-0 flex items-center justify-center bg-black/10 transition-opacity duration-300 ${playing ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`absolute inset-0 flex items-center justify-center bg-black/10 transition-opacity duration-300 pointer-events-none ${playing ? 'opacity-0' : 'opacity-100'}`}>
           <Play className="w-16 h-16 text-white opacity-80 fill-current" />
         </div>
 
         {showHeart && (
-          <div className="absolute text-red-500 animate-ping" style={{ left: heartPos.x - 30, top: heartPos.y - 30, pointerEvents: 'none' }}>
+          <div className="absolute text-red-500 animate-ping pointer-events-none" style={{ left: heartPos.x - 30, top: heartPos.y - 30 }}>
             <Heart className="w-20 h-20 fill-current" />
           </div>
         )}
 
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--border-primary)] z-20">
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--border-primary)] z-20 pointer-events-none">
           <div className="h-full bg-tiktok-red" style={{ width: `${progress}%` }} />
         </div>
 
-        <div className="absolute top-4 left-4 z-20">
+        <div className="absolute top-4 left-4 z-20" onClick={e => e.stopPropagation()}>
           <button onClick={togglePiP} className="p-2 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] text-[var(--text-primary)] hover:scale-110 transition shadow-lg">
             <PictureInPicture className="w-5 h-5" />
           </button>
         </div>
 
-        <div 
+        <div
           className="absolute top-4 right-4 flex items-center gap-2 z-20 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-full p-2 hover:w-32 transition-all duration-300 w-10 overflow-hidden group/vol shadow-lg"
           onClick={e => e.stopPropagation()}
         >
           <button className="text-[var(--text-primary)] flex-shrink-0" onClick={() => { setMuted(!muted); if (videoRef.current) videoRef.current.muted = !muted; }}>
             {muted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
-          <input 
-            type="range" min="0" max="1" step="0.01" 
+          <input
+            type="range" min="0" max="1" step="0.01"
             value={muted ? 0 : volume}
             onChange={(e) => {
               const val = parseFloat(e.target.value);
@@ -362,6 +362,7 @@ export default function VideoCard({ video, isActive }) {
               setMuted(val === 0);
               if (videoRef.current) { videoRef.current.volume = val; videoRef.current.muted = val === 0; }
             }}
+            onClick={e => e.stopPropagation()}
             className="w-20 accent-tiktok-red"
           />
         </div>
@@ -372,7 +373,7 @@ export default function VideoCard({ video, isActive }) {
               <img src={avatarUrl} className="w-12 h-12 rounded-full border-2 border-white object-cover shadow-xl hover:scale-110 transition-transform" alt="avatar" />
             </Link>
             {!isFollowing && session?.user?.id !== video.user_id && (
-              <button 
+              <button
                 onClick={handleFollow}
                 className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-tiktok-red text-white rounded-full p-0.5 shadow-lg hover:scale-125 active:scale-95 transition-all"
               >
@@ -381,33 +382,33 @@ export default function VideoCard({ video, isActive }) {
             )}
           </div>
           <ActionBtn icon={Heart} label={formatNum(likesCount)} active={liked} onClick={handleLike} pulse={likeAnim} filled={liked} />
-          <ActionBtn icon={MessageCircle} label={formatNum(commentsCount)} onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }} />
+          <ActionBtn icon={MessageCircle} label={formatNum(commentsCount)} onClick={handleOpenComments} />
           <ActionBtn icon={Bookmark} label={null} active={saved} onClick={handleSave} filled={saved} hideLabel={true} />
           <ActionBtn icon={Share2} label={formatNum(sharesCount)} onClick={handleShare} />
         </div>
 
-          <div className="absolute left-4 bottom-8 right-16 z-10 pointer-events-none">
-            <Link href={`/profile/${username}`} onClick={e => e.stopPropagation()} className="inline-block pointer-events-auto">
-              <h3 className="font-bold text-lg text-white drop-shadow-lg mb-2 hover:underline transition-all">@{username}</h3>
-            </Link>
-            <p className="text-white text-sm mb-3 drop-shadow-lg line-clamp-2 max-w-xs">{description}</p>
-            <div className="flex items-center gap-2 group pointer-events-auto cursor-pointer w-fit" onClick={e => e.stopPropagation()}>
-              <Music className="w-4 h-4 text-white animate-spin-slow" />
-              <span className="text-white text-sm truncate max-w-[150px] drop-shadow-lg">{song}</span>
-            </div>
+        <div className="absolute left-4 bottom-8 right-16 z-10 pointer-events-none">
+          <Link href={`/profile/${username}`} onClick={e => e.stopPropagation()} className="inline-block pointer-events-auto">
+            <h3 className="font-bold text-lg text-white drop-shadow-lg mb-2 hover:underline transition-all">@{username}</h3>
+          </Link>
+          <p className="text-white text-sm mb-3 drop-shadow-lg line-clamp-2 max-w-xs">{description}</p>
+          <div className="flex items-center gap-2 group pointer-events-auto cursor-pointer w-fit" onClick={e => e.stopPropagation()}>
+            <Music className="w-4 h-4 text-white animate-spin-slow" />
+            <span className="text-white text-sm truncate max-w-[150px] drop-shadow-lg">{song}</span>
           </div>
         </div>
+      </div>
 
-        {toast.show && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in zoom-in duration-300">
-            <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl border border-white/10 shadow-2xl flex items-center gap-3">
-              <div className="w-2 h-2 bg-tiktok-red rounded-full animate-pulse" />
-              <span className="font-bold text-sm">{toast.message}</span>
-            </div>
+      {toast.show && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in zoom-in duration-300 pointer-events-none">
+          <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl border border-white/10 shadow-2xl flex items-center gap-3">
+            <div className="w-2 h-2 bg-tiktok-red rounded-full animate-pulse" />
+            <span className="font-bold text-sm">{toast.message}</span>
           </div>
-        )}
+        </div>
+      )}
 
-        {showComments && (
+      {showComments && (
         <div className="hidden md:flex w-[350px] flex-col bg-[var(--bg-secondary)] border-l border-[var(--border-primary)] animate-slide-in-right z-10" onClick={e => e.stopPropagation()}>
           <CommentsContent />
         </div>
@@ -415,7 +416,7 @@ export default function VideoCard({ video, isActive }) {
 
       {showComments && (
         <div className="md:hidden fixed inset-0 z-[100] flex flex-col justify-end" onClick={e => e.stopPropagation()}>
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowComments(false)}></div>
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowComments(false)} />
           <div className="relative bg-[var(--bg-secondary)] w-full h-[75%] rounded-t-2xl flex flex-col animate-slide-up shadow-2xl z-10">
             <CommentsContent />
           </div>

@@ -1,7 +1,9 @@
 "use client"
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, User, Plus, LogIn, MessageSquare } from 'lucide-react';
+import { Home, Compass, User, Plus, LogIn, MessageSquare, Bell } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '../utils/supabase';
 
 export function Logo({ compact }) {
   return (
@@ -25,30 +27,66 @@ export function Logo({ compact }) {
 
 export function Sidebar({ compact, session }) {
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!session) return;
+    
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('read', false);
+      setUnreadCount(count || 0);
+    };
+    
+    fetchUnread();
+
+    const channel = supabase.channel('sidebar_notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${session.user.id}` }, () => {
+        setUnreadCount(p => p + 1);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${session.user.id}` }, () => {
+        fetchUnread();
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [session]);
 
   const NAV = [
-    { id: 'home',    label: 'Para ti',   href: '/',            Icon: Home },
-    { id: 'explore', label: 'Explorar',  href: '/explore',     Icon: Compass },
-    { id: 'chat',    label: 'Mensajes',  href: '/chat',        Icon: MessageSquare, requiresAuth: true },
-    { id: 'profile', label: session ? 'Mi perfil' : 'Registrarse', href: session ? '/profile/me' : '/register', Icon: session ? User : LogIn },
+    { id: 'home',          label: 'Inicio',       href: '/',                Icon: Home },
+    { id: 'explore',       label: 'Explorar',     href: '/explore',         Icon: Compass },
+    { id: 'chat',          label: 'Mensajes',     href: '/chat',            Icon: MessageSquare, requiresAuth: true },
+    { id: 'notifications', label: 'Bandeja',      href: '/notifications',   Icon: Bell,          requiresAuth: true, badge: unreadCount },
+    { id: 'profile',       label: session ? 'Mi perfil' : 'Registrarse', href: session ? '/profile/me' : '/register', Icon: session ? User : LogIn },
   ];
 
   return (
-    <aside className={`h-full w-20 lg:w-60 flex flex-col justify-between py-5 px-2 lg:px-4 ${compact ? 'w-20' : ''}`}>
+    <aside className={`h-full w-20 lg:w-60 flex flex-col justify-between py-5 px-2 lg:px-4 ${compact ? 'w-20' : ''} border-r border-[var(--border-primary)] bg-[var(--bg-primary)]`}>
       <div className="flex flex-col gap-6">
         <Logo compact={compact} />
         <nav className="flex flex-col gap-2">
-          {NAV.map(({ id, label, href, Icon, requiresAuth }) => {
+          {NAV.map(({ id, label, href, Icon, requiresAuth, badge }) => {
             if (requiresAuth && !session) return null;
             const isActive = pathname === href || (id === 'profile' && pathname.startsWith('/profile')) || (id === 'chat' && pathname.startsWith('/chat'));
+            
             return (
               <Link
                 key={id}
                 href={href}
-                className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${isActive ? 'text-tiktok-red' : 'text-tiktok-text hover:bg-tiktok-dark-hover'}`}
+                className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group relative ${isActive ? 'text-tiktok-red' : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
                 title={compact ? label : ''}
               >
-                <Icon className={`w-7 h-7 flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                <div className="relative">
+                  <Icon className={`w-7 h-7 flex-shrink-0 transition-transform ${badge > 0 ? 'animate-wiggle' : 'group-hover:scale-110'} ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                  {badge > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-tiktok-red text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full shadow-md animate-in zoom-in">
+                      {badge > 9 ? '9+' : badge}
+                    </span>
+                  )}
+                </div>
                 {!compact && <span className={`font-semibold text-lg hidden lg:block ${isActive ? 'text-tiktok-red' : ''}`}>{label}</span>}
               </Link>
             );
@@ -63,27 +101,39 @@ export function Sidebar({ compact, session }) {
         </div>
       </div>
 
-      {!compact && <p className="text-xs text-tiktok-gray text-center hidden lg:block">© 2026 TikTok</p>}
+      {!compact && <p className="text-xs text-[var(--text-secondary)] text-center hidden lg:block">© 2026 TikTok</p>}
     </aside>
   );
 }
 
 export function BottomNav({ session }) {
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!session) return;
+    const fetchUnread = async () => {
+      const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('read', false);
+      setUnreadCount(count || 0);
+    };
+    fetchUnread();
+    const channel = supabase.channel('bottom_notifications').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${session.user.id}` }, () => { setUnreadCount(p => p + 1); }).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${session.user.id}` }, () => { fetchUnread(); }).subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [session]);
 
   const NAV = [
-    { id: 'home',    label: 'Inicio',   href: '/',            Icon: Home },
-    { id: 'explore', label: 'Explorar', href: '/explore',     Icon: Compass },
-    { id: 'upload',  label: 'Subir',    href: session ? '/upload' : '/login', Icon: Plus, isCenter: true },
-    { id: 'chat',    label: 'Chat',     href: '/chat',        Icon: MessageSquare, requiresAuth: true },
-    { id: 'profile', label: session ? 'Perfil' : 'Registro',  href: session ? '/profile/me' : '/register', Icon: session ? User : LogIn },
+    { id: 'home',          label: 'Inicio',       href: '/',                Icon: Home },
+    { id: 'explore',       label: 'Explorar',     href: '/explore',         Icon: Compass },
+    { id: 'upload',        label: 'Subir',        href: session ? '/upload' : '/login', Icon: Plus, isCenter: true },
+    { id: 'notifications', label: 'Bandeja',      href: '/notifications',   Icon: Bell,          requiresAuth: true, badge: unreadCount },
+    { id: 'profile',       label: session ? 'Perfil' : 'Registro',  href: session ? '/profile/me' : '/register', Icon: session ? User : LogIn },
   ];
 
   return (
-    <nav className="flex justify-around items-center h-16 w-full max-w-md mx-auto">
-      {NAV.map(({ id, label, href, Icon, isCenter, requiresAuth }) => {
+    <nav className="flex justify-around items-center h-16 w-full max-w-md mx-auto border-t border-[var(--border-primary)] bg-[var(--bg-primary)]">
+      {NAV.map(({ id, label, href, Icon, isCenter, requiresAuth, badge }) => {
         if (requiresAuth && !session) return null;
-        const isActive = pathname === href || (id === 'profile' && pathname.startsWith('/profile')) || (id === 'chat' && pathname.startsWith('/chat'));
+        const isActive = pathname === href || (id === 'profile' && pathname.startsWith('/profile')) || (id === 'chat' && pathname.startsWith('/chat')) || (id === 'notifications' && pathname.startsWith('/notifications'));
 
         if (isCenter) {
           return (
@@ -101,7 +151,14 @@ export function BottomNav({ session }) {
             href={href}
             className={`flex flex-col items-center justify-center h-full px-3 gap-1 transition-all duration-200 hover:scale-110 active:scale-95 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
           >
-            <Icon className={`w-6 h-6 transition-transform ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+            <div className="relative">
+              <Icon className={`w-6 h-6 transition-transform ${badge > 0 ? 'animate-wiggle' : ''} ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+              {badge > 0 && (
+                <span className="absolute -top-1 -right-1 bg-tiktok-red text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full shadow-md animate-in zoom-in">
+                  {badge > 9 ? '9+' : badge}
+                </span>
+              )}
+            </div>
             <span className={`text-[10px] font-medium transition-all ${isActive ? 'font-bold' : ''}`}>{label}</span>
           </Link>
         );

@@ -263,3 +263,96 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.get_conversations(UUID) TO authenticated;
 
+-- ==========================================
+-- TABLA DE NOTIFICACIONES
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  actor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL, -- 'like', 'comment', 'follow', 'message'
+  video_id UUID REFERENCES public.videos(id) ON DELETE CASCADE,
+  message TEXT,
+  read BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users see own notifications" ON public.notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Anyone can insert notifications" ON public.notifications FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users mark own as read" ON public.notifications FOR UPDATE USING (auth.uid() = user_id);
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+
+-- ==========================================
+-- ACTUALIZACIÓN A MENSAJES (EDICIÓN Y MEDIA)
+-- ==========================================
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS edited BOOLEAN DEFAULT false;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS deleted BOOLEAN DEFAULT false;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS media_url TEXT;
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS media_type TEXT; -- 'image', 'video', 'gif'
+DROP POLICY IF EXISTS "Users can mark messages as read." ON public.messages;
+CREATE POLICY "Users can update their messages" ON public.messages FOR UPDATE USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
+-- ==========================================
+-- TABLAS DE GRUPOS DE CHAT
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.chat_groups (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  avatar_url TEXT,
+  owner_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+ALTER TABLE public.chat_groups ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.group_members (
+  group_id UUID REFERENCES public.chat_groups(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+  PRIMARY KEY (group_id, user_id)
+);
+ALTER TABLE public.group_members ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.group_messages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  group_id UUID REFERENCES public.chat_groups(id) ON DELETE CASCADE NOT NULL,
+  sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  content TEXT,
+  media_url TEXT,
+  media_type TEXT,
+  edited BOOLEAN DEFAULT false,
+  deleted BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+ALTER TABLE public.group_messages ENABLE ROW LEVEL SECURITY;
+
+-- ==========================================
+-- RLS PARA GRUPOS
+-- ==========================================
+CREATE POLICY "Group members see group" ON public.chat_groups FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.group_members WHERE group_id = id AND user_id = auth.uid())
+);
+CREATE POLICY "Authenticated can create groups" ON public.chat_groups FOR INSERT WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY "Owner can update group" ON public.chat_groups FOR UPDATE USING (auth.uid() = owner_id);
+CREATE POLICY "Owner can delete group" ON public.chat_groups FOR DELETE USING (auth.uid() = owner_id);
+
+CREATE POLICY "Members see memberships" ON public.group_members FOR SELECT USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.group_members gm WHERE gm.group_id = group_id AND gm.user_id = auth.uid()));
+CREATE POLICY "Members can join" ON public.group_members FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Members can leave" ON public.group_members FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Members see group messages" ON public.group_messages FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.group_members WHERE group_id = group_messages.group_id AND user_id = auth.uid())
+);
+CREATE POLICY "Members can send group messages" ON public.group_messages FOR INSERT WITH CHECK (
+  auth.uid() = sender_id AND EXISTS (SELECT 1 FROM public.group_members WHERE group_id = group_messages.group_id AND user_id = auth.uid())
+);
+CREATE POLICY "Sender can edit/delete group messages" ON public.group_messages FOR UPDATE USING (auth.uid() = sender_id);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.group_messages;
+
+-- ==========================================
+-- STORAGE BUCKET PARA MEDIA DE CHAT
+-- ==========================================
+INSERT INTO storage.buckets (id, name, public) VALUES ('chat-media', 'chat-media', true) ON CONFLICT (id) DO NOTHING;
+CREATE POLICY "Chat media readable" ON storage.objects FOR SELECT USING (bucket_id = 'chat-media');
+CREATE POLICY "Authenticated can upload chat media" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'chat-media' AND auth.uid() = owner);

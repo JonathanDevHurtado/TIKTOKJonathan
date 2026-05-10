@@ -237,7 +237,7 @@ CREATE POLICY "Users can mark messages as read." ON public.messages FOR UPDATE U
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 
 -- RPC: get conversations list
-CREATE OR REPLACE FUNCTION public.get_conversations(p_user_id UUID)
+CREATE OR REPLACE FUNCTION public.get_conversations(user_id UUID)
 RETURNS TABLE (
   other_user_id UUID,
   last_message TEXT,
@@ -248,23 +248,23 @@ BEGIN
   RETURN QUERY
   WITH RankedMessages AS (
     SELECT 
-      CASE WHEN m.sender_id = p_user_id THEN m.receiver_id ELSE m.sender_id END AS other_user,
+      CASE WHEN m.sender_id = user_id THEN m.receiver_id ELSE m.sender_id END AS other_user,
       m.content,
       m.created_at,
       m.read,
       m.receiver_id,
       ROW_NUMBER() OVER(
-        PARTITION BY CASE WHEN m.sender_id = p_user_id THEN m.receiver_id ELSE m.sender_id END 
+        PARTITION BY CASE WHEN m.sender_id = user_id THEN m.receiver_id ELSE m.sender_id END 
         ORDER BY m.created_at DESC
       ) as rn
     FROM public.messages m
-    WHERE m.sender_id = p_user_id OR m.receiver_id = p_user_id
+    WHERE m.sender_id = user_id OR m.receiver_id = user_id
   )
   SELECT 
     r.other_user AS other_user_id,
     r.content AS last_message,
     r.created_at AS last_message_at,
-    (SELECT COUNT(*) FROM public.messages m2 WHERE m2.sender_id = r.other_user AND m2.receiver_id = p_user_id AND m2.read = false) AS unread_count
+    (SELECT COUNT(*) FROM public.messages m2 WHERE m2.sender_id = r.other_user AND m2.receiver_id = user_id AND m2.read = false) AS unread_count
   FROM RankedMessages r
   WHERE r.rn = 1
   ORDER BY r.created_at DESC;

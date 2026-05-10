@@ -104,7 +104,7 @@ export default function Feed() {
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        {videos.map((video, i) => (
+        {videos?.filter(v => v && v.id).map((video, i) => (
           <div key={video.id || i} className="h-[100dvh] md:h-full w-full snap-start flex justify-center items-center relative">
             <VideoCard video={video} isActive={i === activeIdx} />
           </div>

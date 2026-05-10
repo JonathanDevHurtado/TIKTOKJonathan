@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../utils/supabase';
-import { Search, Users, Film, ArrowRight, Music, X } from 'lucide-react';
+import { Search, Users, Film, ArrowRight, Music, X, Play } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Explore() {
@@ -20,44 +20,43 @@ export default function Explore() {
       setInitialLoading(true);
       try {
         // 1. Categories
-        const { data: catData } = await supabase.from('categories').select('*');
-        if (catData) setCategories(catData);
+        const { data: catData, error: catError } = await supabase.from('categories').select('*');
+        if (catError) console.error("Error fetching categories:", catError);
+        setCategories(catData || []);
 
-        // 2. Trending Videos (Try likes_count, then likes, then created_at)
-        let { data: trendData, error: trendError } = await supabase
-          .from('videos')
-          .select(`*, profiles(username, avatar_url)`)
-          .order('likes_count', { ascending: false })
-          .limit(12);
+        // 2. Trending Videos (Robust fallback chain)
+        let trendData = [];
         
-        if (trendError) {
-          // Fallback to 'likes'
-          const { data: trendData2, error: trendError2 } = await supabase
+        const fetchWithOrder = async (col) => {
+          return await supabase
             .from('videos')
             .select(`*, profiles(username, avatar_url)`)
-            .order('likes', { ascending: false })
+            .order(col, { ascending: false })
             .limit(12);
-          
-          if (trendError2) {
-             // Ultimate fallback to 'created_at'
-             const { data: trendData3 } = await supabase
-              .from('videos')
-              .select(`*, profiles(username, avatar_url)`)
-              .order('created_at', { ascending: false })
-              .limit(12);
-             trendData = trendData3;
-          } else {
-            trendData = trendData2;
-          }
-        }
-        if (trendData) setTrendingVideos(trendData);
+        };
 
-        // 3. Default Users (Recommended)
+        let { data, error } = await fetchWithOrder('likes_count');
+        
+        if (error || !data) {
+          let { data: d2, error: e2 } = await fetchWithOrder('likes');
+          if (e2 || !d2) {
+            let { data: d3 } = await fetchWithOrder('created_at');
+            trendData = d3 || [];
+          } else {
+            trendData = d2;
+          }
+        } else {
+          trendData = data;
+        }
+
+        setTrendingVideos(trendData || []);
+
+        // 3. Default Users
         const { data: userData } = await supabase
           .from('profiles')
           .select('*')
           .limit(15);
-        if (userData) setDefaultUsers(userData);
+        setDefaultUsers(userData || []);
 
       } catch (error) {
         console.error("Error fetching initial data:", error);
@@ -123,7 +122,7 @@ export default function Explore() {
 
   const UserList = ({ users }) => (
     <div className="flex flex-col divide-y divide-[var(--border-primary)]">
-      {users.map(user => (
+      {users?.filter(u => u && u.id).map(user => (
         <Link 
           key={user.id} 
           href={`/profile/${user.username}`}
@@ -146,14 +145,14 @@ export default function Explore() {
 
   const VideoGrid = ({ videos }) => (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-0.5">
-      {videos.map(video => (
+      {videos?.filter(v => v && v.id).map(video => (
         <Link key={video.id} href={`/video/${video.id}`} className="aspect-[3/4] bg-[var(--bg-secondary)] relative group overflow-hidden">
           <video src={video.video_url} className="w-full h-full object-cover" muted />
           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <Film className="text-white w-8 h-8" />
           </div>
           <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-[10px] font-bold drop-shadow-md">
-            ▶ {video.views || 0}
+            <Play className="w-2 h-2 fill-current" /> {video.views || 0}
           </div>
         </Link>
       ))}
@@ -264,7 +263,7 @@ export default function Explore() {
                   <section>
                     <h2 className="text-2xl font-black text-[var(--text-primary)] mb-6 tracking-tight">Explorar Categorías</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                      {categories.map((cat, idx) => (
+                      {categories?.filter(c => c && c.id).map((cat, idx) => (
                         <div 
                           key={cat.id} 
                           onClick={() => handleCategoryClick(cat.name)}

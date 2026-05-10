@@ -1,7 +1,9 @@
 "use client"
 import { useState, useEffect, useRef } from 'react';
-import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play, X, Send } from 'lucide-react';
 import Link from 'next/link';
+import { supabase } from '../utils/supabase';
+import { useSession } from '../app/SessionProvider';
 
 function formatNum(n) {
   if (!n) return '0';
@@ -26,6 +28,7 @@ function ActionBtn({ icon: Icon, label, active, onClick, pulse, filled }) {
 }
 
 export default function VideoCard({ video, isActive }) {
+  const session = useSession();
   const videoRef = useRef(null);
   const [liked, setLiked]     = useState(false);
   const [saved, setSaved]     = useState(false);
@@ -36,16 +39,41 @@ export default function VideoCard({ video, isActive }) {
   const [progress, setProgress]   = useState(0);
   const [muted, setMuted] = useState(true);
 
-  // Mapear campos
+  // Estados de DB
+  const [likesCount, setLikesCount] = useState(video.likes || 0);
+  const [commentsCount, setCommentsCount] = useState(video.comments || 0);
+  
+  // Modal de comentarios
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+
   const videoUrl = video.video_url || video.src;
   const username = video.profiles?.username || video.user?.name || 'usuario';
   const avatarUrl = video.profiles?.avatar_url || video.user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback';
   const description = video.description || video.desc || '';
   const song = video.song || 'Sonido original';
-  const likesCount = video.likes || 0;
-  const commentsCount = video.comments || 0;
   const sharesCount = video.shares || 0;
   const savesCount = video.saves || 0;
+
+  useEffect(() => {
+    // Cargar likes reales
+    const fetchStats = async () => {
+      if (!video.id) return;
+      
+      const { count: lCount } = await supabase.from('likes').select('*', { count: 'exact', head: true }).eq('video_id', video.id);
+      if (lCount !== null) setLikesCount(lCount);
+
+      const { count: cCount } = await supabase.from('comments').select('*', { count: 'exact', head: true }).eq('video_id', video.id);
+      if (cCount !== null) setCommentsCount(cCount);
+
+      if (session?.user) {
+        const { data } = await supabase.from('likes').select('id').eq('video_id', video.id).eq('user_id', session.user.id).single();
+        if (data) setLiked(true);
+      }
+    };
+    fetchStats();
+  }, [video.id, session]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -69,11 +97,47 @@ export default function VideoCard({ video, isActive }) {
     }
   };
 
-  const handleLike = (e) => {
+  const handleLike = async (e) => {
     e.stopPropagation();
-    setLiked(p => !p); 
+    if (!session) return alert("Debes iniciar sesión para dar me gusta");
+
+    const newLikedState = !liked;
+    setLiked(newLikedState);
+    setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
+    
     setLikeAnim(true);
     setTimeout(() => setLikeAnim(false), 400);
+
+    if (newLikedState) {
+      await supabase.from('likes').insert({ video_id: video.id, user_id: session.user.id });
+    } else {
+      await supabase.from('likes').delete().match({ video_id: video.id, user_id: session.user.id });
+    }
+  };
+
+  const openComments = async (e) => {
+    e.stopPropagation();
+    setShowComments(true);
+    const { data } = await supabase.from('comments').select('*, profiles(username, avatar_url)').eq('video_id', video.id).order('created_at', { ascending: true });
+    if (data) setComments(data);
+  };
+
+  const postComment = async (e) => {
+    e.preventDefault();
+    if (!session) return alert("Debes iniciar sesión para comentar");
+    if (!newComment.trim()) return;
+
+    const { data, error } = await supabase.from('comments').insert({
+      video_id: video.id,
+      user_id: session.user.id,
+      content: newComment.trim()
+    }).select('*, profiles(username, avatar_url)').single();
+
+    if (!error && data) {
+      setComments([...comments, data]);
+      setNewComment('');
+      setCommentsCount(prev => prev + 1);
+    }
   };
 
   return (
@@ -142,13 +206,13 @@ export default function VideoCard({ video, isActive }) {
         
         <ActionBtn
           icon={Heart}
-          label={liked ? formatNum(likesCount + 1) : formatNum(likesCount)}
+          label={formatNum(likesCount)}
           active={liked} 
           filled={liked}
           onClick={handleLike} 
           pulse={likeAnim}
         />
-        <ActionBtn icon={MessageCircle} filled={true} label={formatNum(commentsCount)} />
+        <ActionBtn icon={MessageCircle} filled={true} label={formatNum(commentsCount)} onClick={openComments} />
         <ActionBtn icon={Bookmark} filled={saved} active={saved} label={formatNum(savesCount)} onClick={e => { e.stopPropagation(); setSaved(s => !s); }} />
         <ActionBtn icon={Share2} filled={true} label={formatNum(sharesCount)} />
         
@@ -156,6 +220,49 @@ export default function VideoCard({ video, isActive }) {
           <img src={avatarUrl} alt="Audio" className="w-full h-full object-cover" />
         </div>
       </div>
+
+      {/* Modal de Comentarios superpuesto */}
+      {showComments && (
+        <div className="absolute inset-0 bg-black/60 z-50 flex flex-col justify-end" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#121212] w-full h-[70%] rounded-t-2xl flex flex-col animate-slide-up">
+            
+            <div className="flex justify-between items-center p-4 border-b border-tiktok-dark-hover">
+              <span className="font-bold text-white">{commentsCount} comentarios</span>
+              <button onClick={() => setShowComments(false)} className="text-tiktok-gray hover:text-white"><X /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
+              {comments.length === 0 ? (
+                <p className="text-tiktok-gray text-center my-auto">Sé el primero en comentar.</p>
+              ) : (
+                comments.map(c => (
+                  <div key={c.id} className="flex gap-3">
+                    <img src={c.profiles?.avatar_url || avatarUrl} className="w-8 h-8 rounded-full bg-tiktok-dark-hover" />
+                    <div>
+                      <p className="text-sm font-semibold text-tiktok-gray">{c.profiles?.username || 'usuario'}</p>
+                      <p className="text-white text-sm">{c.content}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <form onSubmit={postComment} className="p-4 border-t border-tiktok-dark-hover flex gap-2">
+              <input 
+                type="text" 
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+                placeholder="Añadir comentario..." 
+                className="flex-1 bg-[#1e1e1e] text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:border-tiktok-gray border border-transparent transition-colors"
+              />
+              <button type="submit" disabled={!newComment.trim()} className="text-tiktok-red disabled:opacity-50 p-2">
+                <Send className="w-5 h-5" />
+              </button>
+            </form>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

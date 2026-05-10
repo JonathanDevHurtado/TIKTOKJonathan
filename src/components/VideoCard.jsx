@@ -51,6 +51,12 @@ export default function VideoCard({ video, isActive }) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [toast, setToast] = useState({ show: false, message: '' });
+
+  const showToast = (msg) => {
+    setToast({ show: true, message: msg });
+    setTimeout(() => setToast({ show: false, message: '' }), 3000);
+  };
 
   const videoUrl = video.video_url || video.src;
   const username = video.profiles?.username || video.user?.name || 'usuario';
@@ -148,9 +154,14 @@ export default function VideoCard({ video, isActive }) {
     }
   };
 
+    } else {
+      await supabase.from('likes').delete().match({ video_id: video.id, user_id: session.user.id });
+    }
+  };
+
   const handleLike = async (e) => {
     e.stopPropagation();
-    if (!session) return alert("Debes iniciar sesión para dar me gusta");
+    if (!session) return showToast("Inicia sesión para dar Like");
 
     const newLikedState = !liked;
     setLiked(newLikedState);
@@ -161,7 +172,7 @@ export default function VideoCard({ video, isActive }) {
 
     if (newLikedState) {
       const { error } = await supabase.from('likes').insert({ video_id: video.id, user_id: session.user.id });
-      if (error && error.code !== '23505') alert("Error al guardar el like: " + error.message);
+      if (error && error.code !== '23505') console.error("Error liking:", error);
     } else {
       await supabase.from('likes').delete().match({ video_id: video.id, user_id: session.user.id });
     }
@@ -169,8 +180,8 @@ export default function VideoCard({ video, isActive }) {
 
   const handleFollow = async (e) => {
     e?.stopPropagation();
-    if (!session) return alert("Debes iniciar sesión para seguir a este usuario");
-    if (session.user.id === video.user_id) return alert("No puedes seguirte a ti mismo");
+    if (!session) return showToast("Inicia sesión para seguir");
+    if (session.user.id === video.user_id) return showToast("No puedes seguirte a ti mismo");
 
     const newFollowState = !isFollowing;
     setIsFollowing(newFollowState);
@@ -183,6 +194,8 @@ export default function VideoCard({ video, isActive }) {
       if (error && error.code !== '23505') {
         console.error("Error following:", error);
         setIsFollowing(false);
+      } else {
+        showToast("Siguiendo a @" + username);
       }
     } else {
       const { error } = await supabase.from('followers').delete().match({ 
@@ -209,7 +222,7 @@ export default function VideoCard({ video, isActive }) {
 
   const handleSave = async (e) => {
     e.stopPropagation();
-    if (!session) return alert("Debes iniciar sesión para guardar videos");
+    if (!session) return showToast("Inicia sesión para guardar");
 
     const newSavedState = !saved;
     setSaved(newSavedState);
@@ -217,6 +230,7 @@ export default function VideoCard({ video, isActive }) {
     if (newSavedState) {
       const { error } = await supabase.from('saves').insert({ video_id: video.id, user_id: session.user.id });
       if (error && error.code !== '23505') console.error("Error saving:", error);
+      else showToast("Video guardado");
     } else {
       await supabase.from('saves').delete().match({ video_id: video.id, user_id: session.user.id });
     }
@@ -225,10 +239,25 @@ export default function VideoCard({ video, isActive }) {
   const handleShare = async (e) => {
     e.stopPropagation();
     const link = `${window.location.origin}/video/${video.id}`;
-    navigator.clipboard.writeText(link);
-    alert("¡Enlace copiado al portapapeles!");
-    setSharesCount(prev => prev + 1);
-    await supabase.rpc('increment_share', { vid_id: video.id });
+    
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(link);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = link;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      showToast("¡Enlace copiado!");
+      setSharesCount(prev => prev + 1);
+      await supabase.rpc('increment_share', { vid_id: video.id });
+    } catch (err) {
+      console.error("Error sharing:", err);
+      showToast("Error al copiar enlace");
+    }
   };
 
   const togglePiP = async (e) => {
@@ -362,19 +391,28 @@ export default function VideoCard({ video, isActive }) {
           <ActionBtn icon={Share2} label={formatNum(sharesCount)} onClick={handleShare} />
         </div>
 
-        <div className="absolute left-4 bottom-8 right-16 z-10 pointer-events-none">
-          <Link href={`/profile/${username}`} onClick={e => e.stopPropagation()} className="inline-block pointer-events-auto">
-            <h3 className="font-bold text-lg text-white drop-shadow-lg mb-2 hover:underline transition-all">@{username}</h3>
-          </Link>
-          <p className="text-white text-sm mb-3 drop-shadow-lg line-clamp-2 max-w-xs">{description}</p>
-          <div className="flex items-center gap-2 group pointer-events-auto cursor-pointer w-fit" onClick={e => e.stopPropagation()}>
-            <Music className="w-4 h-4 text-white animate-spin-slow" />
-            <span className="text-white text-sm truncate max-w-[150px] drop-shadow-lg">{song}</span>
+          <div className="absolute left-4 bottom-8 right-16 z-10 pointer-events-none">
+            <Link href={`/profile/${username}`} onClick={e => e.stopPropagation()} className="inline-block pointer-events-auto">
+              <h3 className="font-bold text-lg text-white drop-shadow-lg mb-2 hover:underline transition-all">@{username}</h3>
+            </Link>
+            <p className="text-white text-sm mb-3 drop-shadow-lg line-clamp-2 max-w-xs">{description}</p>
+            <div className="flex items-center gap-2 group pointer-events-auto cursor-pointer w-fit" onClick={e => e.stopPropagation()}>
+              <Music className="w-4 h-4 text-white animate-spin-slow" />
+              <span className="text-white text-sm truncate max-w-[150px] drop-shadow-lg">{song}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {showComments && (
+        {toast.show && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in zoom-in duration-300">
+            <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-2xl border border-white/10 shadow-2xl flex items-center gap-3">
+              <div className="w-2 h-2 bg-tiktok-red rounded-full animate-pulse" />
+              <span className="font-bold text-sm">{toast.message}</span>
+            </div>
+          </div>
+        )}
+
+        {showComments && (
         <div className="hidden md:flex w-[350px] flex-col bg-[var(--bg-secondary)] border-l border-[var(--border-primary)] animate-slide-in-right z-10" onClick={e => e.stopPropagation()}>
           <CommentsContent />
         </div>

@@ -17,12 +17,6 @@ export default function Feed() {
 
   useEffect(() => {
     const fetchVideos = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/register');
-        return;
-      }
-
       const { data, error } = await supabase
         .from('videos')
         .select(`*, profiles(username, avatar_url)`)

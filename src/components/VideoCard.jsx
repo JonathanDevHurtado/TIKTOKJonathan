@@ -45,11 +45,17 @@ export default function VideoCard({ video, isActive }) {
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
-      } else if (videoRef.current) {
+      } else if (document.pictureInPictureEnabled && videoRef.current) {
         await videoRef.current.requestPictureInPicture();
+      } else if (videoRef.current && videoRef.current.webkitSetPresentationMode) {
+        videoRef.current.webkitSetPresentationMode(
+          videoRef.current.webkitPresentationMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture'
+        );
+      } else {
+        alert("Tu navegador no soporta Picture-in-Picture.");
       }
     } catch (err) {
-      console.error(err);
+      alert("Error al abrir Picture-in-Picture: " + err.message);
     }
   };
 
@@ -178,7 +184,8 @@ export default function VideoCard({ video, isActive }) {
         src={videoUrl}
         loop 
         muted={muted} 
-        playsInline 
+        playsInline
+        disablePictureInPicture
         preload="metadata"
         onTimeUpdate={() => {
           const v = videoRef.current;

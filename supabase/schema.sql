@@ -1,9 +1,11 @@
 -- Configuración inicial: Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Tabla de Perfiles (Profiles)
--- Se enlaza con auth.users de Supabase
-CREATE TABLE public.profiles (
+-- ==========================================
+-- 1. CREACIÓN DE TABLAS (IDEMPOTENTE)
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   full_name TEXT,
@@ -12,19 +14,18 @@ CREATE TABLE public.profiles (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Tabla de Categorías (Categories)
-CREATE TABLE public.categories (
+CREATE TABLE IF NOT EXISTS public.categories (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT UNIQUE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Insertar categorías por defecto
+-- Insertar categorías por defecto de forma idempotente
 INSERT INTO public.categories (name) VALUES 
-('Gaming'), ('Entretenimiento'), ('Música'), ('Educación'), ('Deportes'), ('Tecnología'), ('Otros');
+('Gaming'), ('Entretenimiento'), ('Música'), ('Educación'), ('Deportes'), ('Tecnología'), ('Otros')
+ON CONFLICT (name) DO NOTHING;
 
--- 3. Tabla de Videos (Videos)
-CREATE TABLE public.videos (
+CREATE TABLE IF NOT EXISTS public.videos (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   video_url TEXT NOT NULL,
@@ -34,17 +35,15 @@ CREATE TABLE public.videos (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. Tabla de Likes (Likes)
-CREATE TABLE public.likes (
+CREATE TABLE IF NOT EXISTS public.likes (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   video_id UUID REFERENCES public.videos(id) ON DELETE CASCADE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  UNIQUE(user_id, video_id) -- Un usuario solo puede dar un like por video
+  UNIQUE(user_id, video_id)
 );
 
--- 5. Tabla de Comentarios (Comments)
-CREATE TABLE public.comments (
+CREATE TABLE IF NOT EXISTS public.comments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   video_id UUID REFERENCES public.videos(id) ON DELETE CASCADE NOT NULL,
@@ -52,17 +51,15 @@ CREATE TABLE public.comments (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 6. Tabla de Seguidores (Followers)
-CREATE TABLE public.followers (
+CREATE TABLE IF NOT EXISTS public.followers (
   follower_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   following_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  PRIMARY KEY (follower_id, following_id) -- No se puede seguir a la misma persona dos veces
+  PRIMARY KEY (follower_id, following_id)
 );
 
-
 -- ==========================================
--- ROW LEVEL SECURITY (RLS) POLICIES
+-- 2. ROW LEVEL SECURITY (RLS) POLICIES
 -- ==========================================
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.videos ENABLE ROW LEVEL SECURITY;
@@ -71,40 +68,69 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.followers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 
--- Políticas para Profiles
+-- Profiles
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone." ON public.profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own profile." ON public.profiles;
 CREATE POLICY "Users can insert their own profile." ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update own profile." ON public.profiles;
 CREATE POLICY "Users can update own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- Políticas para Categories
+-- Categories
+DROP POLICY IF EXISTS "Categories are viewable by everyone." ON public.categories;
 CREATE POLICY "Categories are viewable by everyone." ON public.categories FOR SELECT USING (true);
 
--- Políticas para Videos
+-- Videos
+DROP POLICY IF EXISTS "Videos are viewable by everyone." ON public.videos;
 CREATE POLICY "Videos are viewable by everyone." ON public.videos FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own videos." ON public.videos;
 CREATE POLICY "Users can insert their own videos." ON public.videos FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own videos." ON public.videos;
 CREATE POLICY "Users can update their own videos." ON public.videos FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own videos." ON public.videos;
 CREATE POLICY "Users can delete their own videos." ON public.videos FOR DELETE USING (auth.uid() = user_id);
 
--- Políticas para Likes
+-- Likes
+DROP POLICY IF EXISTS "Likes are viewable by everyone." ON public.likes;
 CREATE POLICY "Likes are viewable by everyone." ON public.likes FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own likes." ON public.likes;
 CREATE POLICY "Users can insert their own likes." ON public.likes FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own likes." ON public.likes;
 CREATE POLICY "Users can delete their own likes." ON public.likes FOR DELETE USING (auth.uid() = user_id);
 
--- Políticas para Comments
+-- Comments
+DROP POLICY IF EXISTS "Comments are viewable by everyone." ON public.comments;
 CREATE POLICY "Comments are viewable by everyone." ON public.comments FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own comments." ON public.comments;
 CREATE POLICY "Users can insert their own comments." ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own comments." ON public.comments;
 CREATE POLICY "Users can update their own comments." ON public.comments FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own comments." ON public.comments;
 CREATE POLICY "Users can delete their own comments." ON public.comments FOR DELETE USING (auth.uid() = user_id);
 
--- Políticas para Followers
+-- Followers
+DROP POLICY IF EXISTS "Followers are viewable by everyone." ON public.followers;
 CREATE POLICY "Followers are viewable by everyone." ON public.followers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can follow others." ON public.followers;
 CREATE POLICY "Users can follow others." ON public.followers FOR INSERT WITH CHECK (auth.uid() = follower_id);
+
+DROP POLICY IF EXISTS "Users can unfollow others." ON public.followers;
 CREATE POLICY "Users can unfollow others." ON public.followers FOR DELETE USING (auth.uid() = follower_id);
 
 -- ==========================================
--- TRIGGERS / FUNCTIONS (Automatización)
+-- 3. TRIGGERS / FUNCTIONS (Automatización)
 -- ==========================================
--- Función para crear automáticamente un perfil cuando un usuario se registra en Auth
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
@@ -114,20 +140,52 @@ BEGIN
     COALESCE(new.raw_user_meta_data->>'username', 'user_' || substr(new.id::text, 1, 8)),
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url'
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger para ejecutar la función anterior al registrar un usuario
+-- Eliminar trigger si existe para ser idempotente
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 -- ==========================================
--- STORAGE POLICIES (Para BUCKETS: "videos" y "avatars")
--- NOTA: Debes crear estos buckets manualmente en la interfaz de Supabase primero.
+-- 4. STORAGE BUCKETS & POLICIES
 -- ==========================================
--- (Se asume que has creado los buckets públicos "videos" y "avatars")
--- Políticas para el bucket "videos" (reemplazar "storage.objects" según interfaz, 
--- pero normalmente se configura mejor desde el Dashboard de Supabase)
+
+-- Crear buckets si no existen
+INSERT INTO storage.buckets (id, name, public) VALUES ('videos', 'videos', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
+
+-- Asegurar RLS en la tabla de storage
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- Políticas para Videos
+DROP POLICY IF EXISTS "Videos are publicly accessible" ON storage.objects;
+CREATE POLICY "Videos are publicly accessible" ON storage.objects FOR SELECT USING (bucket_id = 'videos');
+
+DROP POLICY IF EXISTS "Users can upload videos" ON storage.objects;
+CREATE POLICY "Users can upload videos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'videos' AND auth.uid() = owner);
+
+DROP POLICY IF EXISTS "Users can update their videos" ON storage.objects;
+CREATE POLICY "Users can update their videos" ON storage.objects FOR UPDATE USING (bucket_id = 'videos' AND auth.uid() = owner);
+
+DROP POLICY IF EXISTS "Users can delete their videos" ON storage.objects;
+CREATE POLICY "Users can delete their videos" ON storage.objects FOR DELETE USING (bucket_id = 'videos' AND auth.uid() = owner);
+
+-- Políticas para Avatars
+DROP POLICY IF EXISTS "Avatars are publicly accessible" ON storage.objects;
+CREATE POLICY "Avatars are publicly accessible" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Users can upload avatars" ON storage.objects;
+CREATE POLICY "Users can upload avatars" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid() = owner);
+
+DROP POLICY IF EXISTS "Users can update their avatars" ON storage.objects;
+CREATE POLICY "Users can update their avatars" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid() = owner);
+
+DROP POLICY IF EXISTS "Users can delete their avatars" ON storage.objects;
+CREATE POLICY "Users can delete their avatars" ON storage.objects FOR DELETE USING (bucket_id = 'avatars' AND auth.uid() = owner);

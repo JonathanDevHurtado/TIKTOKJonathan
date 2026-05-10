@@ -319,11 +319,11 @@ export default function GroupChatPage() {
               className={`w-full px-4 py-3 pr-10 rounded-2xl text-sm outline-none transition-all border focus:ring-2 focus:ring-tiktok-red/30 focus:border-tiktok-red resize-none min-h-[44px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-white/30' : 'bg-gray-100 border-transparent text-black placeholder:text-black/40 focus:bg-white'}`}
               rows={1} style={{ height: content ? 'auto' : '44px' }}
             />
-            <div className="absolute right-2 bottom-2">
-              <button type="button" onClick={(e) => { e.stopPropagation(); setShowEmojis(!showEmojis); }} className={`p-1.5 rounded-full transition-colors ${isDark ? 'text-white/40 hover:text-white' : 'text-black/40 hover:text-black'}`}><Smile className="w-5 h-5" /></button>
+            <div className="absolute right-2 bottom-2 z-50">
+              <button type="button" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setShowEmojis(!showEmojis); }} className={`p-1.5 rounded-full transition-colors ${isDark ? 'text-white/40 hover:text-white' : 'text-black/40 hover:text-black'}`}><Smile className="w-5 h-5" /></button>
               {showEmojis && (
-                <div className={`absolute bottom-10 right-0 p-2 rounded-2xl shadow-2xl border w-64 grid grid-cols-5 gap-1 animate-in zoom-in-95 ${isDark ? 'bg-[#111] border-white/10' : 'bg-white border-black/10'}`} onClick={e => e.stopPropagation()}>
-                  {EMOJIS.map(e => <button key={e} type="button" onClick={() => { setContent(prev => prev + e); setShowEmojis(false); inputRef.current?.focus(); }} className={`text-2xl p-1 rounded-xl hover:scale-125 transition-transform ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}>{e}</button>)}
+                <div className={`absolute bottom-10 right-0 p-2 rounded-2xl shadow-2xl border w-64 grid grid-cols-5 gap-1 animate-in zoom-in-95 ${isDark ? 'bg-[#111] border-white/10' : 'bg-white border-black/10'}`} onPointerDown={e => e.stopPropagation()}>
+                  {EMOJIS.map(e => <button key={e} type="button" onPointerDown={(evt) => { evt.preventDefault(); evt.stopPropagation(); setContent(prev => prev + e); setShowEmojis(false); setTimeout(() => inputRef.current?.focus(), 10); }} className={`text-2xl p-1 rounded-xl hover:scale-125 transition-transform ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}>{e}</button>)}
                 </div>
               )}
             </div>

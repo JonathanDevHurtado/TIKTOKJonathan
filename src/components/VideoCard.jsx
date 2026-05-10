@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play, X, Send, PictureInPicture, Plus } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play, X, Send, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
 import { useSession } from '../app/SessionProvider';
@@ -244,13 +244,7 @@ export default function VideoCard({ video, isActive }) {
     }
   };
 
-  const togglePiP = async (e) => {
-    e.stopPropagation();
-    try {
-      if (document.pictureInPictureElement) await document.exitPictureInPicture();
-      else if (videoRef.current) await videoRef.current.requestPictureInPicture();
-    } catch (err) { console.error(err); }
-  };
+
 
   const commentsContentJsx = (
     <>
@@ -340,11 +334,7 @@ export default function VideoCard({ video, isActive }) {
           <div className="h-full bg-tiktok-red" style={{ width: `${progress}%` }} />
         </div>
 
-        <div className="absolute top-4 left-4 z-20" onClick={e => e.stopPropagation()}>
-          <button onClick={togglePiP} className="p-2 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] text-[var(--text-primary)] hover:scale-110 transition shadow-lg">
-            <PictureInPicture className="w-5 h-5" />
-          </button>
-        </div>
+
 
         <div
           className="absolute top-4 right-4 flex items-center gap-2 z-20 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-full p-2 hover:w-32 transition-all duration-300 w-10 overflow-hidden group/vol shadow-lg"

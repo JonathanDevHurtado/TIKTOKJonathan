@@ -386,10 +386,10 @@ export default function ChatPage() {
           />
           
           {/* Emojis Toggle */}
-          <div className="absolute right-2 bottom-2">
+          <div className="absolute right-2 bottom-2 z-50">
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); setShowEmojis(!showEmojis); }}
+              onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setShowEmojis(!showEmojis); }}
               className={`p-1.5 rounded-full transition-colors ${isDark ? 'text-white/40 hover:text-white' : 'text-black/40 hover:text-black'}`}
             >
               <Smile className="w-5 h-5" />
@@ -399,13 +399,13 @@ export default function ChatPage() {
             {showEmojis && (
               <div 
                 className={`absolute bottom-10 right-0 p-2 rounded-2xl shadow-2xl border w-64 grid grid-cols-5 gap-1 animate-in zoom-in-95 ${isDark ? 'bg-[#111] border-white/10' : 'bg-white border-black/10'}`}
-                onClick={e => e.stopPropagation()}
+                onPointerDown={e => e.stopPropagation()}
               >
                 {EMOJIS.map(e => (
                   <button 
                     key={e} 
                     type="button"
-                    onClick={() => { setContent(prev => prev + e); setShowEmojis(false); inputRef.current?.focus(); }}
+                    onPointerDown={(evt) => { evt.preventDefault(); evt.stopPropagation(); setContent(prev => prev + e); setShowEmojis(false); setTimeout(() => inputRef.current?.focus(), 10); }}
                     className={`text-2xl p-1 rounded-xl hover:scale-125 transition-transform ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
                   >
                     {e}

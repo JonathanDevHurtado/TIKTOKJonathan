@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play, X, Send, Plus } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, Music, Play, X, Send, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '../utils/supabase';
 import { useSession } from '../app/SessionProvider';
@@ -228,6 +228,17 @@ export default function VideoCard({ video, isActive }) {
     }
   };
 
+  const handleDeleteVideo = async (e) => {
+    e.stopPropagation();
+    if (!confirm('¿Eliminar este video para siempre?')) return;
+    const { error } = await supabase.from('videos').delete().eq('id', video.id);
+    if (!error) {
+      window.location.reload();
+    } else {
+      showToast("Error al eliminar");
+    }
+  };
+
   const handleShare = async (e) => {
     e.stopPropagation();
     const link = `${window.location.origin}/video/${video.id}`;
@@ -378,6 +389,9 @@ export default function VideoCard({ video, isActive }) {
           <ActionBtn icon={Heart} label={formatNum(likesCount)} active={liked} onClick={handleLike} pulse={likeAnim} filled={liked} />
           <ActionBtn icon={MessageCircle} label={formatNum(commentsCount)} onClick={handleOpenComments} />
           <ActionBtn icon={Bookmark} label={null} active={saved} onClick={handleSave} filled={saved} hideLabel={true} />
+          {session?.user?.id === video.user_id && (
+            <ActionBtn icon={Trash2} label={null} hideLabel={true} onClick={handleDeleteVideo} />
+          )}
           <ActionBtn icon={Share2} label={null} hideLabel={true} onClick={handleShare} />
         </div>
 

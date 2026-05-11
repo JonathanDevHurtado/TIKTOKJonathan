@@ -311,7 +311,7 @@ export default function Profile() {
               {isOwner && activeTab === 'videos' && (
                 <button
                   onClick={(e) => handleDeleteVideo(video.id, e)}
-                  className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-red-500 rounded-full text-white transition-all scale-0 group-hover:scale-100 z-20 hover:rotate-90"
+                  className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-red-500 rounded-full text-white transition-all scale-100 md:scale-0 md:group-hover:scale-100 z-20 md:hover:rotate-90"
                 >
                   <X className="w-4 h-4" />
                 </button>

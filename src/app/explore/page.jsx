@@ -6,20 +6,43 @@ import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
 import { useRouter } from 'next/navigation';
 
-const CATEGORY_COLORS = [
-  { from: 'from-violet-600', to: 'to-purple-800', light: 'from-violet-100', lightTo: 'to-purple-200', emoji: '🎮' },
-  { from: 'from-rose-500', to: 'to-pink-700', light: 'from-rose-100', lightTo: 'to-pink-200', emoji: '🍳' },
-  { from: 'from-emerald-500', to: 'to-teal-700', light: 'from-emerald-100', lightTo: 'to-teal-200', emoji: '🌿' },
-  { from: 'from-blue-500', to: 'to-indigo-700', light: 'from-blue-100', lightTo: 'to-indigo-200', emoji: '🎵' },
-  { from: 'from-amber-500', to: 'to-orange-700', light: 'from-amber-100', lightTo: 'to-orange-200', emoji: '⚽' },
-  { from: 'from-cyan-500', to: 'to-sky-700', light: 'from-cyan-100', lightTo: 'to-sky-200', emoji: '✈️' },
-  { from: 'from-fuchsia-500', to: 'to-pink-700', light: 'from-fuchsia-100', lightTo: 'to-pink-200', emoji: '👗' },
-  { from: 'from-red-500', to: 'to-rose-800', light: 'from-red-100', lightTo: 'to-rose-200', emoji: '💪' },
-  { from: 'from-lime-500', to: 'to-green-700', light: 'from-lime-100', lightTo: 'to-green-200', emoji: '🎨' },
-  { from: 'from-sky-400', to: 'to-blue-700', light: 'from-sky-100', lightTo: 'to-blue-200', emoji: '🌐' },
-  { from: 'from-yellow-400', to: 'to-amber-600', light: 'from-yellow-100', lightTo: 'to-amber-200', emoji: '😂' },
-  { from: 'from-teal-400', to: 'to-emerald-700', light: 'from-teal-100', lightTo: 'to-emerald-200', emoji: '📚' },
-];
+const CATEGORY_MAPPING = {
+  anime: { emoji: '⛩️' },
+  arte: { emoji: '🎨' },
+  aventura: { emoji: '🧗' },
+  bienestar: { emoji: '🧘' },
+  ciencia: { emoji: '🧪' },
+  cine: { emoji: '🎬' },
+  cocina: { emoji: '🍳' },
+  curiosidades: { emoji: '💡' },
+  deportes: { emoji: '🏆' },
+  diseño: { emoji: '📐' },
+  educacion: { emoji: '🎓' },
+  entretenimiento: { emoji: '🍿' },
+  fitness: { emoji: '🏋️' },
+  fotografia: { emoji: '📷' },
+  gaming: { emoji: '🎮' },
+  hardware: { emoji: '📟' },
+  historia: { emoji: '📜' },
+  humor: { emoji: '🤣' },
+  mascotas: { emoji: '🐾' },
+  moda: { emoji: '👠' },
+  motor: { emoji: '🏎️' },
+  musica: { emoji: '🎸' },
+  naturaleza: { emoji: '🌲' },
+  negocios: { emoji: '💼' },
+  noticias: { emoji: '📰' },
+  otros: { emoji: '📦' },
+  paisajes: { emoji: '⛰️' },
+  tecnologia: { emoji: '💻' },
+  viajes: { emoji: '✈️' },
+  vlogs: { emoji: '🤳' }
+};
+
+const getCategoryMeta = (name) => {
+  const n = name?.toLowerCase() || 'otros';
+  return CATEGORY_MAPPING[n] || CATEGORY_MAPPING['otros'];
+};
 
 function formatNum(n) {
   if (!n) return '0';
@@ -373,8 +396,8 @@ export default function Explore() {
 
               {/* Category Pills */}
               <div className="flex flex-wrap gap-2 mb-6">
-                {categories.map((cat, idx) => {
-                  const colors = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+                {categories.map((cat) => {
+                  const meta = getCategoryMeta(cat.name);
                   const isActive = activeCategory?.id === cat.id;
                   return (
                     <button
@@ -388,7 +411,7 @@ export default function Explore() {
                             : 'bg-black/5 border-black/10 hover:bg-black/10 text-black'
                       }`}
                     >
-                      <span>{colors.emoji}</span>
+                      <span>{meta.emoji}</span>
                       <span className="capitalize">{cat.name}</span>
                     </button>
                   );
@@ -400,7 +423,7 @@ export default function Explore() {
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{CATEGORY_COLORS[categories.findIndex(c => c.id === activeCategory.id) % CATEGORY_COLORS.length]?.emoji}</span>
+                      <span className="text-lg">{getCategoryMeta(activeCategory.name).emoji}</span>
                       <h3 className="font-bold text-lg capitalize">{activeCategory.name}</h3>
                     </div>
                     <button

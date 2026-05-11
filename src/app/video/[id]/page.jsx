@@ -43,7 +43,7 @@ export default function VideoPage() {
 
   const goTo = useCallback((idx) => {
     if (isScrolling.current || videos.length === 0) return;
-    const clamped = Math.max(0, Math.min(idx, videos.length - 1));
+    const clamped = ((idx % videos.length) + videos.length) % videos.length;
     isScrolling.current = true;
     setCurrentIdx(clamped);
     router.replace(`/video/${videos[clamped].id}`, { scroll: false });
@@ -106,15 +106,13 @@ export default function VideoPage() {
       <div className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 flex-col gap-3 z-50">
         <button
           onClick={() => goTo(currentIdx - 1)}
-          disabled={currentIdx === 0}
-          className={`p-3 rounded-full transition-all hover:scale-110 active:scale-90 disabled:opacity-30 shadow-xl border backdrop-blur-sm ${isDark ? 'bg-white/10 hover:bg-white/20 text-white border-white/10' : 'bg-black/10 hover:bg-black/20 text-black border-black/10'}`}
+          className={`p-3 rounded-full transition-all hover:scale-110 active:scale-90 shadow-xl border backdrop-blur-sm ${isDark ? 'bg-white/10 hover:bg-white/20 text-white border-white/10' : 'bg-black/10 hover:bg-black/20 text-black border-black/10'}`}
         >
           <ChevronUp className="w-5 h-5" />
         </button>
         <button
           onClick={() => goTo(currentIdx + 1)}
-          disabled={currentIdx === videos.length - 1}
-          className={`p-3 rounded-full transition-all hover:scale-110 active:scale-90 disabled:opacity-30 shadow-xl border backdrop-blur-sm ${isDark ? 'bg-white/10 hover:bg-white/20 text-white border-white/10' : 'bg-black/10 hover:bg-black/20 text-black border-black/10'}`}
+          className={`p-3 rounded-full transition-all hover:scale-110 active:scale-90 shadow-xl border backdrop-blur-sm ${isDark ? 'bg-white/10 hover:bg-white/20 text-white border-white/10' : 'bg-black/10 hover:bg-black/20 text-black border-black/10'}`}
         >
           <ChevronDown className="w-5 h-5" />
         </button>

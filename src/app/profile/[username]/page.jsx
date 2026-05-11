@@ -100,6 +100,7 @@ export default function Profile() {
     if (newFollowState) {
       const { error } = await supabase.from('followers').insert({ follower_id: session.user.id, following_id: profile.id });
       if (error && error.code !== '23505') { setIsFollowing(false); setStats(prev => ({ ...prev, followers: prev.followers - 1 })); }
+      else { supabase.from('notifications').insert({ user_id: profile.id, actor_id: session.user.id, type: 'follow' }).then(); }
     } else {
       const { error } = await supabase.from('followers').delete().match({ follower_id: session.user.id, following_id: profile.id });
       if (error) { setIsFollowing(true); setStats(prev => ({ ...prev, followers: prev.followers + 1 })); }

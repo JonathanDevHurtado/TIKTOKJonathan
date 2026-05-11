@@ -195,7 +195,7 @@ export default function GroupChatPage() {
   if (!session || !group) return <div className="h-screen w-full flex items-center justify-center"><Loader2 className="w-8 h-8 text-tiktok-red animate-spin" /></div>;
 
   return (
-    <div className={`flex h-screen w-full overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-white text-black'}`}>
+    <div className={`flex h-[100dvh] w-full overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-white text-black'}`}>
       
       {/* Main Chat Area */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${showSidebar ? 'mr-0 lg:mr-80' : ''}`}>

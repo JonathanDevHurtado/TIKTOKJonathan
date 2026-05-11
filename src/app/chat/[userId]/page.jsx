@@ -204,7 +204,7 @@ export default function ChatPage() {
   if (!session) return null;
 
   return (
-    <div className={`flex flex-col h-screen w-full transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-white text-black'}`}>
+    <div className={`flex flex-col h-[100dvh] w-full transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-white text-black'}`}>
       {/* Header */}
       <div className={`flex items-center gap-3 px-4 py-3 border-b shrink-0 z-20 shadow-sm ${isDark ? 'border-white/5 bg-[#0a0a0a]/90 backdrop-blur-md' : 'border-black/5 bg-white/90 backdrop-blur-md'}`}>
         <button onClick={() => router.push('/chat')} className={`p-2 rounded-full transition-all hover:scale-110 active:scale-90 ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}>

@@ -243,8 +243,6 @@ export default function VideoCard({ video, isActive }) {
         document.body.removeChild(textArea);
       }
       showToast("¡Enlace copiado!");
-      setSharesCount(prev => prev + 1);
-      await supabase.rpc('increment_share', { vid_id: video.id });
     } catch (err) {
       showToast("Error al copiar enlace");
     }
@@ -380,7 +378,7 @@ export default function VideoCard({ video, isActive }) {
           <ActionBtn icon={Heart} label={formatNum(likesCount)} active={liked} onClick={handleLike} pulse={likeAnim} filled={liked} />
           <ActionBtn icon={MessageCircle} label={formatNum(commentsCount)} onClick={handleOpenComments} />
           <ActionBtn icon={Bookmark} label={null} active={saved} onClick={handleSave} filled={saved} hideLabel={true} />
-          <ActionBtn icon={Share2} label={formatNum(sharesCount)} onClick={handleShare} />
+          <ActionBtn icon={Share2} label={null} hideLabel={true} onClick={handleShare} />
         </div>
 
         <div className="absolute left-4 bottom-8 right-16 z-10 pointer-events-none">

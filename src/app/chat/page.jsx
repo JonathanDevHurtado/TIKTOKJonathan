@@ -124,7 +124,7 @@ export default function ChatList() {
   if (!session) return null;
 
   return (
-    <div className={`flex flex-col h-screen w-full transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-white text-black'}`}>
+    <div className={`flex flex-col h-[100dvh] w-full transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-white text-black'}`}>
       <div className={`px-4 py-5 border-b sticky top-0 z-30 ${isDark ? 'border-white/5 bg-[#0a0a0a]/90 backdrop-blur-md' : 'border-black/5 bg-white/90 backdrop-blur-md'}`}>
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-black tracking-tight">Mensajes</h1>

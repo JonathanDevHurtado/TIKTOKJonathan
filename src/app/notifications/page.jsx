@@ -24,7 +24,6 @@ export default function NotificationsPage() {
       setNotifications(data || []);
       setLoading(false);
 
-      // Mark as read
       await supabase.from('notifications').update({ read: true }).eq('user_id', session.user.id).eq('read', false);
     };
 
@@ -32,7 +31,6 @@ export default function NotificationsPage() {
 
     const channel = supabase.channel('notifications_page')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${session.user.id}` }, (payload) => {
-        // Fetch actor data for the new notification
         supabase.from('profiles').select('username, avatar_url').eq('id', payload.new.actor_id).single().then(({ data: actor }) => {
           if (payload.new.video_id) {
             supabase.from('videos').select('video_url').eq('id', payload.new.video_id).single().then(({ data: video }) => {
@@ -42,7 +40,6 @@ export default function NotificationsPage() {
             setNotifications(prev => [{ ...payload.new, actor }, ...prev]);
           }
         });
-        // Mark this new one as read since we are on the page
         supabase.from('notifications').update({ read: true }).eq('id', payload.new.id);
       })
       .subscribe();

@@ -102,7 +102,6 @@ export default function VideoPage() {
         <ChevronLeft className="w-6 h-6 group-hover:-translate-x-0.5 transition-transform" />
       </button>
 
-      {/* Desktop navigation */}
       <div className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 flex-col gap-3 z-50">
         <button
           onClick={() => goTo(currentIdx - 1)}
@@ -118,7 +117,6 @@ export default function VideoPage() {
         </button>
       </div>
 
-      {/* Video counter */}
       <div className={`absolute top-6 right-6 z-[100] px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-sm border ${isDark ? 'bg-black/40 text-white/70 border-white/10' : 'bg-white/40 text-black/70 border-black/10'}`}>
         {currentIdx + 1} / {videos.length}
       </div>

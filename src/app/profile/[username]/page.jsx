@@ -154,7 +154,6 @@ export default function Profile() {
   return (
     <div className={`w-full max-w-4xl mx-auto h-full flex flex-col transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-white text-black'}`}>
 
-      {/* Top Header */}
       <div className={`flex justify-end items-center p-4 sticky top-0 z-40 border-b transition-colors ${isDark ? 'bg-[#0a0a0a] border-white/5' : 'bg-white border-black/5'}`}>
         {isOwner ? (
           <div className="relative">
@@ -208,7 +207,6 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Profile Info */}
       <div className="flex flex-col items-center p-4 md:p-8 animate-in fade-in duration-500">
         <div className="relative mb-4 group cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
           <img
@@ -226,7 +224,6 @@ export default function Profile() {
         <h2 className="text-xl font-bold mb-1">@{profile?.username || 'cargando...'}</h2>
         {profile?.full_name && <h3 className="text-sm font-semibold opacity-70 mb-4">{profile.full_name}</h3>}
 
-        {/* Stats - clickable */}
         <div className="flex gap-8 mb-6 text-center">
           <Link href={`/profile/${profile.username}/following`} className={`group cursor-pointer transition-all hover:scale-110`}>
             <p className="font-bold text-lg group-hover:text-tiktok-red transition-colors">{stats.following}</p>
@@ -271,7 +268,6 @@ export default function Profile() {
         <p className={`mt-4 text-sm text-center max-w-sm ${isDark ? 'opacity-70' : 'opacity-60'}`}>{profile.bio || 'Sin biografía todavía.'}</p>
       </div>
 
-      {/* Tabs */}
       <div className={`flex w-full border-b sticky top-[65px] z-20 transition-colors ${isDark ? 'border-white/5 bg-[#0a0a0a]' : 'border-black/5 bg-white'}`}>
         <button
           onClick={() => setActiveTab('videos')}
@@ -294,7 +290,6 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Video Grid */}
       <div className="grid grid-cols-3 gap-0.5 flex-1 pb-20">
         {isBlocked ? (
           <div className="col-span-3 flex flex-col items-center justify-center py-20 gap-3 opacity-40 text-center">
@@ -327,7 +322,6 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Modals */}
       {isEditModalOpen && <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} profile={profile} onUpdate={fetchProfile} />}
 
       {isDeleteModalOpen && (

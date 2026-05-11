@@ -19,7 +19,7 @@ function ActionBtn({ icon: Icon, label, active, onClick, pulse, filled, hideLabe
       <div className={`p-3 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] backdrop-blur-sm transition-all duration-300 ${pulse ? 'scale-125' : ''} ${active ? 'text-tiktok-red shadow-[0_0_15px_rgba(254,44,85,0.3)]' : 'text-[var(--text-primary)]'} group-hover:scale-110 group-active:scale-90 shadow-lg group-hover:shadow-xl`}>
         <Icon className={`w-7 h-7 ${filled ? 'fill-current' : ''} transition-all duration-300 ${active ? 'scale-110' : ''}`} strokeWidth={2.5} />
       </div>
-      {!hideLabel && label && <span className="text-[var(--text-primary)] text-xs font-bold drop-shadow-md transition-colors group-hover:text-white">{label}</span>}
+      {!hideLabel && label && <span className="text-[var(--text-primary)] text-xs font-bold drop-shadow-md transition-colors">{label}</span>}
     </button>
   );
 }

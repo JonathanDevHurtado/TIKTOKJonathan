@@ -22,13 +22,11 @@ export default function GroupChatPage() {
   const [showSidebar, setShowSidebar] = useState(false);
   const avatarInputRef = useRef(null);
 
-  // Group settings state
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [searchNewUser, setSearchNewUser] = useState('');
   const [userResults, setUserResults] = useState([]);
 
-  // Edit/Delete msg state
   const [editingMsg, setEditingMsg] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
 
@@ -40,7 +38,6 @@ export default function GroupChatPage() {
     if (!session) { router.push('/login'); return; }
 
     const loadData = async () => {
-      // Load group
       const { data: gData, error: gErr } = await supabase
         .from('chat_groups')
         .select('*')
@@ -52,19 +49,16 @@ export default function GroupChatPage() {
       setEditName(gData.name);
       setEditDesc(gData.description || '');
 
-      // Load members
       const { data: mData } = await supabase
         .from('group_members')
         .select('user_id, profiles:user_id(username, avatar_url, full_name)')
         .eq('group_id', groupId);
       
       if (!mData?.find(m => m.user_id === session.user.id)) {
-        // user is not a member!
         router.push('/chat'); return;
       }
       setMembers(mData.map(m => m.profiles));
 
-      // Load messages
       const { data: msgs } = await supabase
         .from('group_messages')
         .select('*, profiles:sender_id(username, avatar_url)')
@@ -98,7 +92,7 @@ export default function GroupChatPage() {
          });
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'group_members', filter: `group_id=eq.${groupId}` }, (payload) => {
-         if (payload.old.user_id === session.user.id) router.push('/chat'); // I was kicked/left
+         if (payload.old.user_id === session.user.id) router.push('/chat');
          setMembers(prev => prev.filter(m => m.id !== payload.old.user_id));
       })
       .subscribe();
@@ -142,7 +136,6 @@ export default function GroupChatPage() {
     await supabase.from('group_messages').update({ deleted: true, content: 'Mensaje eliminado' }).eq('id', msgId);
   };
 
-  // --- Group Settings Functions ---
   const isOwner = group?.owner_id === session?.user?.id;
 
   const updateGroup = async () => {
@@ -199,7 +192,6 @@ export default function GroupChatPage() {
       
       {/* Main Chat Area */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${showSidebar ? 'mr-0 lg:mr-80' : ''}`}>
-        {/* Header */}
         <div className={`flex items-center justify-between px-4 py-3 border-b shrink-0 z-20 shadow-sm ${isDark ? 'border-white/5 bg-[#0a0a0a]/90 backdrop-blur-md' : 'border-black/5 bg-white/90 backdrop-blur-md'}`}>
           <div className="flex items-center gap-3">
             <button onClick={() => router.push('/chat')} className={`p-2 rounded-full transition-all hover:scale-110 active:scale-90 ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}>
@@ -220,7 +212,6 @@ export default function GroupChatPage() {
           </button>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 custom-scrollbar relative">
           {messages.map((msg, i) => {
             const isMe = msg.sender_id === session.user.id;
@@ -252,7 +243,6 @@ export default function GroupChatPage() {
                   </div>
                 </div>
 
-                {/* Context Menu for sender */}
                 {isMe && !msg.deleted && !msg.optimistic && (
                   <div className="relative opacity-0 group-hover/msg:opacity-100 transition-opacity mb-1">
                     <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === msg.id ? null : msg.id); }} className={`p-1 rounded-full ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}><MoreVertical className="w-4 h-4 opacity-50" /></button>
@@ -270,7 +260,6 @@ export default function GroupChatPage() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Input area */}
         <form onSubmit={sendMessage} className={`shrink-0 flex items-end gap-2 px-4 py-3 border-t z-20 ${isDark ? 'border-white/5 bg-[#0a0a0a]' : 'border-black/5 bg-white'}`}>
           <div className="relative flex-1">
             <textarea
@@ -285,7 +274,6 @@ export default function GroupChatPage() {
         </form>
       </div>
 
-      {/* Settings Sidebar Overlay for Mobile / Fixed for Desktop */}
       {showSidebar && (
         <div className={`absolute lg:relative right-0 top-0 bottom-0 w-full lg:w-80 border-l z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300 ${isDark ? 'bg-[#111] border-white/5' : 'bg-white border-black/5'}`}>
           <div className={`p-4 border-b flex items-center justify-between shrink-0 ${isDark ? 'border-white/5' : 'border-black/5'}`}>
@@ -294,7 +282,6 @@ export default function GroupChatPage() {
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 custom-scrollbar">
-            {/* Header info */}
             <div className="flex flex-col items-center text-center gap-3">
               <div className="relative group cursor-pointer" onClick={() => isOwner && avatarInputRef.current?.click()}>
                 <div className={`w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-2 ${isDark ? 'border-white/10 bg-white/5' : 'border-black/5 bg-black/5'}`}>
@@ -321,7 +308,6 @@ export default function GroupChatPage() {
               )}
             </div>
 
-            {/* Invite */}
             <div className="space-y-3">
               <h4 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white/40' : 'text-black/40'}`}>Añadir Miembros</h4>
               <div className="relative">
@@ -343,7 +329,6 @@ export default function GroupChatPage() {
               )}
             </div>
 
-            {/* Members List */}
             <div className="space-y-3 flex-1">
               <h4 className={`text-xs font-bold uppercase tracking-wider flex justify-between ${isDark ? 'text-white/40' : 'text-black/40'}`}>
                 <span>Miembros</span>
@@ -364,7 +349,6 @@ export default function GroupChatPage() {
               </div>
             </div>
 
-            {/* Danger Zone */}
             <div className="pt-4 border-t space-y-2 shrink-0">
               <button onClick={leaveGroup} className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl font-bold transition-colors ${isDark ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-black/5 hover:bg-black/10 text-black'}`}>
                 <LogOut className="w-4 h-4" /> Salir del grupo

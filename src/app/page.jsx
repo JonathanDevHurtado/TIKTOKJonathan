@@ -113,7 +113,6 @@ export default function Feed() {
 
   return (
     <div className="relative h-full w-full mx-auto flex flex-col bg-tiktok-black">
-      {/* Feed Tabs */}
       <div className="absolute top-0 left-0 right-0 z-50 flex justify-center pt-3 pb-2 pointer-events-none">
         <div className="flex gap-1 pointer-events-auto bg-black/30 backdrop-blur-md rounded-full px-1 py-1 border border-white/10 shadow-xl">
           {[
@@ -147,7 +146,6 @@ export default function Feed() {
         </div>
       ) : (
         <>
-          {/* Desktop nav arrows */}
           <div className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 flex-col gap-4 z-50">
             <button className="bg-tiktok-dark-hover p-2 rounded-full hover:bg-tiktok-gray transition-colors hover:scale-110 active:scale-90" onClick={() => goTo(activeIdx - 1)}>
               <ChevronUp className="text-white w-6 h-6" />

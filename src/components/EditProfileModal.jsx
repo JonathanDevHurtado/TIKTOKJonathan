@@ -109,7 +109,6 @@ export default function EditProfileModal({ isOpen, onClose, profile, onUpdate })
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           
-          {/* Avatar Section */}
           <div className="flex flex-col items-center">
             <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
               <img 

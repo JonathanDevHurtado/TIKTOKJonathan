@@ -44,7 +44,6 @@ export default function Explore() {
   const [categoryVideos, setCategoryVideos] = useState([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
   
-  // Infinite scroll states
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const observerRef = useRef(null);
@@ -54,13 +53,10 @@ export default function Explore() {
     if (loading || !hasMore) return;
     setLoading(true);
     
-    // Load random videos for infinite scroll when in a category
     if (activeCategory) {
       const currentIds = categoryVideos.map(v => v.id);
       let query = supabase.from('videos').select(`*, profiles(username, avatar_url)`);
       if (currentIds.length > 0) {
-        // Just get any videos not in the current list to act as "random" infinite scroll
-        // No strict NOT IN due to URL length limits, we just use random ordering or offset
         query = query.order('created_at', { ascending: false }).range(page * 20, (page + 1) * 20 - 1);
       } else {
         query = query.eq('category_id', activeCategory.id).order('created_at', { ascending: false }).limit(20);
@@ -70,7 +66,6 @@ export default function Explore() {
       
       if (data && data.length > 0) {
         setCategoryVideos(prev => {
-          // Filter duplicates just in case
           const newVids = data.filter(d => !prev.find(p => p.id === d.id));
           return [...prev, ...newVids];
         });
@@ -82,7 +77,6 @@ export default function Explore() {
     setLoading(false);
   }, [activeCategory, categoryVideos, page, loading, hasMore]);
 
-  // Intersection Observer for infinite scroll
   const lastElementRef = useCallback(node => {
     if (loading) return;
     if (observerRef.current) observerRef.current.disconnect();
@@ -105,7 +99,7 @@ export default function Explore() {
         const { data, error } = await supabase
           .from('videos')
           .select(`*, profiles(username, avatar_url)`)
-          .order('views', { ascending: false }) // Order by views for trending
+          .order('views', { ascending: false })
           .limit(12);
         if (!error && data) trendData = data;
         setTrendingVideos(trendData);

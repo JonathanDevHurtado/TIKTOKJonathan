@@ -26,7 +26,7 @@ export default function ChatList() {
     if (!session) return;
 
     const loadChats = async () => {
-      // Direct Messages
+
       const { data: convs, error } = await supabase.rpc('get_conversations', { user_id: session.user.id });
       if (!error && convs) {
         const withProfiles = await Promise.all(convs.map(async (c) => {
@@ -36,7 +36,7 @@ export default function ChatList() {
         setConversations(withProfiles.sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at)));
       }
 
-      // Group Chats
+
       const { data: groupMemberships } = await supabase
         .from('group_members')
         .select('group_id')
@@ -50,10 +50,7 @@ export default function ChatList() {
           .in('id', groupIds)
           .order('created_at', { ascending: false });
         
-        // Count unread for groups
         const groupsWithUnread = await Promise.all((groupData || []).map(async g => {
-          // Simplistic unread count for groups: we would need a last_read_at in group_members, but for now we just show if there's any recent msg
-          // Real unread logic for groups is complex, we'll keep it simple
           return { ...g, unread_count: 0 }; 
         }));
         setGroups(groupsWithUnread);
@@ -98,7 +95,6 @@ export default function ChatList() {
     if (!groupName.trim() || creating || !session) return;
     setCreating(true);
     
-    // 1. Create group
     const { data: newGroup, error: groupError } = await supabase
       .from('chat_groups')
       .insert({ name: groupName.trim(), description: groupDesc.trim(), owner_id: session.user.id })
@@ -106,13 +102,11 @@ export default function ChatList() {
       .single();
 
     if (!groupError && newGroup) {
-      // 2. Add creator to members
       await supabase.from('group_members').insert({ group_id: newGroup.id, user_id: session.user.id });
-      // 3. Close and redirect
       setIsCreatingGroup(false);
       setGroupName('');
       setGroupDesc('');
-      window.location.href = `/chat/group/${newGroup.id}`; // using window.location to force full load
+      window.location.href = `/chat/group/${newGroup.id}`;
     } else {
       console.error(groupError);
       alert("Error creando grupo");
@@ -171,7 +165,6 @@ export default function ChatList() {
         ) : (
           <div className="p-2 flex flex-col gap-1 animate-in fade-in duration-300 pb-20">
             
-            {/* GROUPS LIST */}
             {groups.length > 0 && (
               <>
                 <p className={`px-3 py-2 text-xs font-bold uppercase tracking-wider mt-2 ${isDark ? 'text-white/40' : 'text-black/40'}`}>Tus Grupos</p>
@@ -196,7 +189,6 @@ export default function ChatList() {
               </>
             )}
 
-            {/* DIRECT MESSAGES LIST */}
             <p className={`px-3 py-2 text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white/40' : 'text-black/40'}`}>Mensajes Directos</p>
             {conversations.length === 0 ? (
                <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
@@ -230,7 +222,6 @@ export default function ChatList() {
         )}
       </div>
 
-      {/* Create Group Modal */}
       {isCreatingGroup && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
           <div className={`w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 ${isDark ? 'bg-[#111] border border-white/10' : 'bg-white'}`}>

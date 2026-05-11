@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../utils/supabase';
 import { useSession } from '../../SessionProvider';
 import { useTheme } from '../../../context/ThemeContext';
-import { ChevronLeft, Send, Loader2, MessageCircle, Image as ImageIcon, Smile, MoreVertical, Edit2, Trash2, Paperclip, X } from 'lucide-react';
+import { ChevronLeft, Send, Loader2, MessageCircle, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ChatPage() {
@@ -19,7 +19,6 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
-  
   const [editingMsg, setEditingMsg] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
 
@@ -75,7 +74,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, mediaPreview]);
+  }, [messages]);
 
   useEffect(() => {
     const handleClick = () => { setActiveMenu(null); };
@@ -83,52 +82,11 @@ export default function ChatPage() {
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (file.size > 10 * 1024 * 1024) {
-      alert("El archivo no puede pesar más de 10MB");
-      return;
-    }
-
-    setMediaFile(file);
-    const url = URL.createObjectURL(file);
-    setMediaPreview({ url, type: file.type.startsWith('video/') ? 'video' : 'image' });
-  };
-
-  const clearMedia = () => {
-    setMediaFile(null);
-    setMediaPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   const sendMessage = async (e) => {
     e?.preventDefault();
-    if ((!content.trim() && !mediaFile) || sending || uploading || !session) return;
+    if (!content.trim() || sending || !session) return;
     setSending(true);
-
-    let mediaUrl = null;
-    let mediaType = null;
-
-    if (mediaFile) {
-      setUploading(true);
-      const fileExt = mediaFile.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${session.user.id}/${fileName}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('chat-media')
-        .upload(filePath, mediaFile);
-
-      if (!uploadError) {
-        const { data: { publicUrl } } = supabase.storage.from('chat-media').getPublicUrl(filePath);
-        mediaUrl = publicUrl;
-        mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
-      }
-      setUploading(false);
-      clearMedia();
-    }
 
     const text = content.trim();
     setContent('');

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../utils/supabase';
 import { useSession } from '../../../SessionProvider';
@@ -13,7 +13,6 @@ export default function FollowersList() {
   const session = useSession();
   const { theme } = useTheme();
   const [followers, setFollowers] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [followingIds, setFollowingIds] = useState(new Set());
@@ -31,7 +30,6 @@ export default function FollowersList() {
 
       const list = (data || []).map(r => r.profiles).filter(Boolean);
       setFollowers(list);
-      setFiltered(list);
 
       if (session?.user?.id) {
         const { data: myFollowing } = await supabase.from('followers').select('following_id').eq('follower_id', session.user.id);
@@ -42,9 +40,9 @@ export default function FollowersList() {
     load();
   }, [username, session]);
 
-  useEffect(() => {
-    if (!query.trim()) { setFiltered(followers); return; }
-    setFiltered(followers.filter(u => u.username?.toLowerCase().includes(query.toLowerCase())));
+  const filtered = useMemo(() => {
+    if (!query.trim()) return followers;
+    return followers.filter(u => u.username?.toLowerCase().includes(query.toLowerCase()));
   }, [query, followers]);
 
   const handleFollow = async (userId) => {

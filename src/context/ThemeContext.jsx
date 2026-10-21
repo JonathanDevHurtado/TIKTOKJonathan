@@ -8,6 +8,7 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- el tema guardado solo se conoce en el cliente
     setTheme(savedTheme);
     document.documentElement.classList.toggle('light', savedTheme === 'light');
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');

@@ -340,7 +340,7 @@ export default function Explore() {
                   <div className={`w-20 h-20 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
                     <Film className="w-9 h-9 opacity-30" />
                   </div>
-                  <p className="font-bold text-lg opacity-50">Sin resultados para "{query}"</p>
+                  <p className="font-bold text-lg opacity-50">Sin resultados para “{query}”</p>
                   <p className="text-sm opacity-30">Prueba con otras palabras</p>
                 </div>
               )
@@ -357,7 +357,7 @@ export default function Explore() {
                   <div className={`w-20 h-20 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`}>
                     <Users className="w-9 h-9 opacity-30" />
                   </div>
-                  <p className="font-bold text-lg opacity-50">Sin usuarios para "{query}"</p>
+                  <p className="font-bold text-lg opacity-50">Sin usuarios para “{query}”</p>
                 </div>
               )
             )}

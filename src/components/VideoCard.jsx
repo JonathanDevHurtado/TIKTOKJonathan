@@ -93,7 +93,6 @@ export default function VideoCard({ video, isActive }) {
           v.play().catch(() => {});
         }
       });
-      setPlaying(true);
       if (!viewTracked.current && video.id) {
         const timer = setTimeout(async () => {
           viewTracked.current = true;
@@ -111,7 +110,6 @@ export default function VideoCard({ video, isActive }) {
     } else {
       v.pause();
       v.currentTime = 0;
-      setPlaying(false);
     }
   }, [isActive, video.id]);
 
@@ -132,8 +130,8 @@ export default function VideoCard({ video, isActive }) {
 
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) { v.play(); setPlaying(true); }
-    else { v.pause(); setPlaying(false); }
+    if (v.paused) { v.play(); }
+    else { v.pause(); }
 
     if (e.detail === 2) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -330,6 +328,8 @@ export default function VideoCard({ video, isActive }) {
           muted={muted}
           playsInline
           className="w-full h-full object-contain"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
           onTimeUpdate={() => {
             if (videoRef.current?.duration) setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
           }}

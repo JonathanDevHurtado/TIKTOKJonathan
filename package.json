@@ -2,12 +2,29 @@
   "name": "tiktokjonathan",
   "private": true,
   "version": "0.0.0",
+  "description": "Clon de TikTok construido con Next.js, Tailwind CSS y Supabase: feed vertical, perfiles, social y chat en tiempo real.",
+  "author": "Jonathan Hurtado (https://github.com/JonathanDevHurtado)",
+  "homepage": "https://jonathandevhurtado.github.io/TIKTOKJonathan/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JonathanDevHurtado/TIKTOKJonathan.git"
+  },
+  "keywords": [
+    "tiktok",
+    "clone",
+    "nextjs",
+    "react",
+    "tailwindcss",
+    "supabase",
+    "realtime",
+    "portfolio"
+  ],
   "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
@@ -23,6 +40,7 @@
   "devDependencies": {
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9"
+    "eslint": "^9",
+    "eslint-config-next": "^16.4.2"
   }
 }

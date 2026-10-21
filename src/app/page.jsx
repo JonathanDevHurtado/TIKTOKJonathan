@@ -7,6 +7,22 @@ import { supabase } from '../utils/supabase';
 import { useSession } from './SessionProvider';
 import { VIDEOS } from '../data/videos';
 
+function EmptyFollowing({ onExplore }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center px-8 h-full">
+      <div className="text-6xl animate-bounce">👥</div>
+      <h2 className="text-2xl font-black">Sin videos de seguidos</h2>
+      <p className="text-[var(--text-secondary)] max-w-sm">Sigue a tus creadores favoritos para ver sus videos aquí.</p>
+      <button
+        onClick={onExplore}
+        className="bg-tiktok-red text-white px-8 py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-tiktok-red/30"
+      >
+        Descubrir creadores
+      </button>
+    </div>
+  );
+}
+
 export default function Feed() {
   const containerRef = useRef(null);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -19,9 +35,6 @@ export default function Feed() {
   const session = useSession();
 
   const fetchVideos = useCallback(async (tab) => {
-    setLoading(true);
-    setActiveIdx(0);
-
     if (tab === 'following' && session?.user?.id) {
       const { data: followingData } = await supabase
         .from('followers')
@@ -50,13 +63,14 @@ export default function Feed() {
       if (data && data.length > 0) {
         setVideos(data);
       } else {
-        setVideos(VIDEOS.map(v => ({ ...v, profiles: { username: v.user, avatar_url: v.avatar } })));
+        setVideos(VIDEOS.map(v => ({ ...v, profiles: { username: v.user.name, avatar_url: v.user.avatar } })));
       }
     }
     setLoading(false);
   }, [session]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchVideos actualiza el estado tras las consultas async
     fetchVideos(feedTab);
   }, [feedTab, fetchVideos]);
 
@@ -97,20 +111,6 @@ export default function Feed() {
     if (Math.abs(diff) > 50) goTo(activeIdx + (diff > 0 ? 1 : -1));
   };
 
-  const EmptyFollowing = () => (
-    <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center px-8 h-full">
-      <div className="text-6xl animate-bounce">👥</div>
-      <h2 className="text-2xl font-black">Sin videos de seguidos</h2>
-      <p className="text-[var(--text-secondary)] max-w-sm">Sigue a tus creadores favoritos para ver sus videos aquí.</p>
-      <button
-        onClick={() => router.push('/explore')}
-        className="bg-tiktok-red text-white px-8 py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-tiktok-red/30"
-      >
-        Descubrir creadores
-      </button>
-    </div>
-  );
-
   return (
     <div className="relative h-full w-full mx-auto flex flex-col bg-tiktok-black">
       <div className="absolute top-0 left-0 right-0 z-50 flex justify-center pt-3 pb-2 pointer-events-none">
@@ -121,7 +121,11 @@ export default function Feed() {
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setFeedTab(tab.id)}
+              onClick={() => {
+                setLoading(true);
+                setActiveIdx(0);
+                setFeedTab(tab.id);
+              }}
               className={`px-5 py-1.5 rounded-full font-bold text-sm transition-all duration-300 ${
                 feedTab === tab.id
                   ? 'bg-white text-black shadow-md scale-105'
@@ -139,7 +143,7 @@ export default function Feed() {
           <div className="animate-spin w-8 h-8 border-4 border-tiktok-red border-t-transparent rounded-full" />
         </div>
       ) : feedTab === 'following' && total === 0 ? (
-        <EmptyFollowing />
+        <EmptyFollowing onExplore={() => router.push('/explore')} />
       ) : total === 0 ? (
         <div className="flex-1 flex items-center justify-center text-tiktok-gray h-full">
           <p>Aún no hay videos publicados</p>

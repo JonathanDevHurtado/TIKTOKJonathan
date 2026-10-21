@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="banner-title banner-desc">
+  <title id="banner-title">TikTokJonathan</title>
+  <desc id="banner-desc">Banner del proyecto TikTokJonathan: clon de TikTok construido con Next.js y Supabase.</desc>
+
+  <defs>
+    <radialGradient id="glow-cyan" cx="0.5" cy="0.5" r="0.5">
+      <stop stop-color="#25F4EE" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#25F4EE" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-red" cx="0.5" cy="0.5" r="0.5">
+      <stop stop-color="#FE2C55" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FE2C55" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#FFFFFF" stroke-opacity="0.035"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="320" rx="28" fill="#0A0A0A"/>
+  <rect width="1200" height="320" rx="28" fill="url(#grid)"/>
+  <circle cx="70" cy="20" r="240" fill="url(#glow-cyan)"/>
+  <circle cx="1150" cy="320" r="260" fill="url(#glow-red)"/>
+
+  <rect x="56" y="96" width="128" height="128" rx="32" fill="#121212" stroke="#FFFFFF" stroke-opacity="0.08"/>
+
+  <svg x="80" y="120" width="96" height="96" viewBox="0 0 48 48" fill="none">
+    <path d="M33 8c0 5.523 4.477 10 10 10v8c-4.03 0-7.77-1.2-10.87-3.25V34c0 8.284-6.716 15-15 15S2 42.284 2 34s6.716-15 15-15c.688 0 1.364.046 2.027.135V27.4A7 7 0 0 0 17 27c-3.866 0-7 3.134-7 7s3.134 7 7 7 7-3.134 7-7V8h9z" fill="url(#logo-gradient)"/>
+    <defs>
+      <linearGradient id="logo-gradient" x1="2" y1="8" x2="43" y2="48" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#25F4EE"/>
+        <stop offset="0.5" stop-color="#FE2C55"/>
+        <stop offset="1" stop-color="#FE2C55"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <text x="224" y="150" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="56" font-weight="800" letter-spacing="-1.5" fill="#FFFFFF">TikTokJonathan</text>
+  <text x="226" y="188" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="23" font-weight="500" fill="#A1A1AA">Clon de TikTok · Next.js + Supabase</text>
+
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">
+    <rect x="226" y="210" width="122" height="30" rx="15" fill="#FE2C55" fill-opacity="0.12" stroke="#FE2C55" stroke-opacity="0.35"/>
+    <text x="287" y="230" text-anchor="middle" fill="#FE2C55">Feed vertical</text>
+
+    <rect x="360" y="210" width="170" height="30" rx="15" fill="#FFFFFF" fill-opacity="0.04" stroke="#FFFFFF" stroke-opacity="0.10"/>
+    <text x="445" y="230" text-anchor="middle" fill="#D4D4D8">Chat en tiempo real</text>
+
+    <rect x="542" y="210" width="132" height="30" rx="15" fill="#FFFFFF" fill-opacity="0.04" stroke="#FFFFFF" stroke-opacity="0.10"/>
+    <text x="608" y="230" text-anchor="middle" fill="#D4D4D8">Supabase</text>
+  </g>
+
+  <text x="226" y="276" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="500" fill="#71717A">Hecho por @JonathanDevHurtado</text>
+  <text x="1144" y="56" text-anchor="end" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600" letter-spacing="2" fill="#52525B">PROYECTO PERSONAL</text>
+</svg>

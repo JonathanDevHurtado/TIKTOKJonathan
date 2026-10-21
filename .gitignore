@@ -30,9 +30,12 @@ yarn-error.log*
 
 # local env files
 .env
-.env.local
-.env*.local
+.env.*
 !.env.example
+.env*.local
+
+# scripts locales con credenciales
+test_db.cjs
 
 # vercel
 .vercel

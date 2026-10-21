@@ -75,6 +75,7 @@ export default function Profile() {
     setLoading(false);
   }, [username, session, router]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchProfile actualiza el estado tras las consultas async
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
   const handleDeleteVideo = async (videoId, e) => {

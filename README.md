@@ -37,7 +37,7 @@
   <sub>Vista de la demo estática: feed vertical con datos de ejemplo.</sub>
 </p>
 
-> Proyecto académico. Funciona, pero no está pensado para producción tal cual: no incluye moderación de contenido, límites de subida ni configuración de despliegue. Lee [limitaciones y roadmap](docs/09-limitaciones-y-roadmap.md) antes de abrirlo al público.
+> Proyecto académico. Funciona, pero no está pensado para producción tal cual: no incluye moderación de contenido ni límites de subida, y varias políticas RLS necesitan revisión. Lee [limitaciones y roadmap](docs/09-limitaciones-y-roadmap.md) antes de abrirlo al público.
 
 ---
 

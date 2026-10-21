@@ -14,7 +14,7 @@ El repositorio contiene rastros de dos versiones distintas del mismo proyecto:
 
 | Etapa | Qué se conserva | Evidencia |
 | --- | --- | --- |
-| **1. SPA con Vite** | `dist/` (build compilado) y el código completo en el primer commit | `dist/index.html` se titula *"TikTok Clone - Vite SPA"*; el bundle incluye React Router 7.15 y un cliente de Supabase con URL de marcador. El commit `01f196b` conserva `vite.config.js`, `index.html`, `src/pages/` y `src/components/`. |
+| **1. SPA con Vite** | `dist/` (build compilado) y el código completo en el primer commit | `dist/index.html` conserva el HTML de la SPA; el título original era *"TikTok Clone - Vite SPA"* y en la demo publicada se cambió a *"TikTokJonathan · Demo"*. El bundle incluye React Router 7.15 y un cliente de Supabase con URL de marcador. El commit `01f196b` conserva `vite.config.js`, `index.html`, `src/pages/` y `src/components/`. |
 | **2. Next.js App Router** | `src/` (código fuente actual) | `package.json` declara `next@^16.2.6`, scripts `next dev/build/start` y rutas en `src/app/`. |
 
 La etapa 1 no está en el árbol de trabajo actual, pero **sí en el historial de Git**. Se puede recuperar con `git show 01f196b:package.json`, `git checkout 01f196b` o explorando el commit en GitHub. El build de esa etapa es el que se conserva en `dist/` para la demo estática. La etapa 2 es la que se puede ejecutar y modificar hoy.

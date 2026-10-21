@@ -76,6 +76,9 @@ Ese `/TIKTOKJonathan/` es un subdirectorio. El build original asumía la raíz (
 - <link rel="icon" type="image/svg+xml" href="/vite.svg" />
 + <link rel="icon" type="image/svg+xml" href="/TIKTOKJonathan/favicon.svg" />
 
+- <title>TikTok Clone - Vite SPA</title>
++ <title>TikTokJonathan · Demo</title>
+
 - <script type="module" crossorigin src="/assets/index-BwS1EQeN.js"></script>
 + <script type="module" crossorigin src="/TIKTOKJonathan/assets/index-BwS1EQeN.js"></script>
 
